@@ -75,12 +75,20 @@ public class LegImpl implements Leg {
 
 	@Override
 	public final double getTravelTime() {
-		return this.travTime;
+		if ( this.route==null ) {
+			return this.travTime;
+		} else {
+			return this.route.getTravelTime() ;
+		}
 	}
 
 	@Override
 	public final void setTravelTime(final double travTime) {
-		this.travTime = travTime;
+		if ( this.route==null ) {
+			this.travTime = travTime;
+		} else {
+			this.route.setTravelTime(travTime);
+		}
 	}
 
 	public final double getArrivalTime() {
@@ -98,6 +106,15 @@ public class LegImpl implements Leg {
 
 	@Override
 	public final void setRoute(Route route) {
+		try {
+			if ( route!=null && route.getTravelTime()==Time.UNDEFINED_TIME ) {
+				route.setTravelTime(this.travTime);
+			}
+		} catch ( Exception ee ) {
+			// probably means that we have a route where we cannot set the travel time.  Not sure what that means ...
+			// i.e. if the leg should have a separately writeable travel time, or if the algo means that the leg's ttime == the
+			// route's ttime is indefined.  kai, nov'15
+		}
 		this.route = route;
 	}
 
