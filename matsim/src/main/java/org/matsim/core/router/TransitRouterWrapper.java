@@ -20,6 +20,8 @@
 package org.matsim.core.router;
 
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -38,129 +40,140 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Wraps a {@link TransitRouter}.
+ * Wraps a {@link TransitRouter}, which routes between {@link Coord}s, into something that
+ * routes between {@link Facility}s. 
  *
  * @author thibautd
  */
 public class TransitRouterWrapper implements RoutingModule {
-    private static final StageActivityTypes CHECKER =
-            new StageActivityTypesImpl(PtConstants.TRANSIT_ACTIVITY_TYPE);
-    private final TransitRouter router;
-    private final RoutingModule walkRouter;
-    private final TransitSchedule transitSchedule;
-    private final Network network;
+	private static final StageActivityTypes CHECKER =
+			new StageActivityTypesImpl(PtConstants.TRANSIT_ACTIVITY_TYPE);
+	private final TransitRouter router;
+	private final RoutingModule walkRouter;
+	private final TransitSchedule transitSchedule;
+	private final Network network;
 
 
-    public TransitRouterWrapper(
-            final TransitRouter router,
-            final TransitSchedule transitSchedule,
-            Network network, final RoutingModule walkRouter) {
-        if (router == null) {
-            throw new NullPointerException("The router object is null, but is required later.");
-        }
-        this.router = router;
-        this.transitSchedule = transitSchedule;
-        this.network = network;
-        if (walkRouter == null) {
-            throw new NullPointerException("The walkRouter object is null, but is required later.");
-        }
-        this.walkRouter = walkRouter;
-    }
+	public TransitRouterWrapper(
+			final TransitRouter router,
+			final TransitSchedule transitSchedule,
+			Network network, final RoutingModule walkRouter) {
+		if (router == null) {
+			throw new NullPointerException("The router object is null, but is required later.");
+		}
+		this.router = router;
+		this.transitSchedule = transitSchedule;
+		this.network = network;
+		if (walkRouter == null) {
+			throw new NullPointerException("The walkRouter object is null, but is required later.");
+		}
+		this.walkRouter = walkRouter;
+	}
 
-    /**
-     * Just links to {@link TransitRouter#calcRoute(Coord, Coord, double, Person)}.
-     *
-     * @return the list of legs returned by the transit router.
-     */
-    @Override
-    public List<? extends PlanElement> calcRoute(
-            final Facility fromFacility,
-            final Facility toFacility,
-            final double departureTime,
-            final Person person) {
-        List<Leg> baseTrip = router.calcRoute(
-                fromFacility.getCoord(),
-                toFacility.getCoord(),
-                departureTime,
-                person);
+	/**
+	 * Just links to {@link TransitRouter#calcRoute(Coord, Coord, double, Person)}.
+	 *
+	 * @return the list of legs returned by the transit router.
+	 */
+	@Override
+	public List<? extends PlanElement> calcRoute(
+			final Facility fromFacility,
+			final Facility toFacility,
+			final double departureTime,
+			final Person person) {
+		List<Leg> baseTrip = router.calcRoute(
+				fromFacility.getCoord(),
+				toFacility.getCoord(),
+				departureTime,
+				person);
 
-        // the previous approach was to return null when no trip was found and
-        // not to replace the trip if so.
-        // However, this makes the output of routing modules more tricky to handle.
-        // Thus, every module should return a valid trip. When available, the "main
-        // mode" flag should be put to the mode of the routing module.
-        return baseTrip != null ?
-                fillWithActivities(baseTrip, fromFacility, toFacility, departureTime, person) :
-                walkRouter.calcRoute(fromFacility, toFacility, departureTime, person);
-    }
+		// the previous approach was to return null when no trip was found and
+		// not to replace the trip if so.
+		// However, this makes the output of routing modules more tricky to handle.
+		// Thus, every module should return a valid trip. When available, the "main
+		// mode" flag should be put to the mode of the routing module.
+		return baseTrip != null ?
+				fillWithActivities(baseTrip, fromFacility, toFacility, departureTime, person) :
+					walkRouter.calcRoute(fromFacility, toFacility, departureTime, person);
+	}
 
-    /**
-     * This treats the TransitRouter as a third-party interface, where missing fields
-     * must be filled in (distance, travel-time in routes).
-     */
-    private List<PlanElement> fillWithActivities(
-		    final List<Leg> baseTrip,
-		    final Facility fromFacility,
-		    final Facility toFacility, double departureTime, Person person) {
-	    List<PlanElement> trip = new ArrayList<>();
-	    Coord nextCoord = null;
-	    int i = 0;
-	    for (Leg leg : baseTrip) {
-		    if (i == 0) {
-			    // (access leg)
-			    Facility firstToFacility;
-			    if (baseTrip.size() > 1) { // at least one pt leg available
-				    ExperimentalTransitRoute tRoute = (ExperimentalTransitRoute) baseTrip.get(1).getRoute();
-				    firstToFacility = this.transitSchedule.getFacilities().get(tRoute.getAccessStopId());
-			    } else {
-				    firstToFacility = toFacility;
-			    }
-			    Route route = new GenericRouteImpl(fromFacility.getLinkId(), firstToFacility.getLinkId());
-			    final List<? extends PlanElement> walkRoute = walkRouter.calcRoute(fromFacility, firstToFacility, departureTime, person);
-			    route.setDistance(((Leg) walkRoute.get(0)).getRoute().getDistance());
-			    route.setTravelTime(leg.getTravelTime());
-			    leg.setRoute(route);
-			    trip.add(leg);
-		    } else {
-			    if (leg.getRoute() instanceof ExperimentalTransitRoute) {
-				    ExperimentalTransitRoute tRoute = (ExperimentalTransitRoute) leg.getRoute();
-				    tRoute.setTravelTime(leg.getTravelTime());
-				    tRoute.setDistance(RouteUtils.calcDistance(tRoute, transitSchedule, network));
-				    ActivityImpl act =
-						    new ActivityImpl(
-								    PtConstants.TRANSIT_ACTIVITY_TYPE,
-								    this.transitSchedule.getFacilities().get(tRoute.getAccessStopId()).getCoord(),
-								    tRoute.getStartLinkId());
-				    act.setMaximumDuration(0.0);
-				    trip.add(act);
-				    nextCoord = this.transitSchedule.getFacilities().get(tRoute.getEgressStopId()).getCoord();
-			    } else { // walk legs don't have a coord, use the coord from the last egress point
-				    if (i == baseTrip.size() - 1) {
-					    ExperimentalTransitRoute tRoute = (ExperimentalTransitRoute) baseTrip.get(baseTrip.size() - 2).getRoute();
-					    Facility lastFromFacility = this.transitSchedule.getFacilities().get(tRoute.getEgressStopId());
-					    Route route = new GenericRouteImpl(lastFromFacility.getLinkId(), toFacility.getLinkId());
-					    final List<? extends PlanElement> walkRoute = walkRouter.calcRoute(lastFromFacility, toFacility, departureTime, person);
-					    route.setDistance(((Leg) walkRoute.get(0)).getRoute().getDistance());
-					    route.setTravelTime(leg.getTravelTime());
-					    leg.setRoute(route);
-				    }
-				    ActivityImpl act =
-						    new ActivityImpl(
-								    PtConstants.TRANSIT_ACTIVITY_TYPE,
-								    nextCoord,
-								    leg.getRoute().getStartLinkId());
-				    act.setMaximumDuration(0.0);
-				    trip.add(act);
-			    }
-			    trip.add(leg);
-		    }
-		    i++;
-	    }
-	    return trip;
-    }
+	/**
+	 * This treats the TransitRouter as a third-party interface, where missing fields
+	 * must be filled in (distance, travel-time in routes).
+	 */
+	private List<PlanElement> fillWithActivities(
+			final List<Leg> baseTrip,
+			final Facility fromFacility,
+			final Facility toFacility, double departureTime, Person person) {
+		List<PlanElement> trip = new ArrayList<>();
+		Coord nextCoord = null;
+		int i = 0;
+		for (Leg leg : baseTrip) {
+			if (i == 0) {
+				// access leg ...
+				Facility firstToFacility;
+				if (baseTrip.size() > 1) { // at least one pt leg available
+					ExperimentalTransitRoute tRoute = (ExperimentalTransitRoute) baseTrip.get(1).getRoute();
+					firstToFacility = this.transitSchedule.getFacilities().get(tRoute.getAccessStopId());
+				} else {
+					firstToFacility = toFacility;
+				}
+				Route route = createWalkRoute( firstToFacility, departureTime, person, fromFacility ) ;
+				route.setTravelTime(leg.getTravelTime());
+				// ... therefore we overwrite the original route with a real walk route:
+				leg.setRoute(route);
+				trip.add(leg);
+			} else {
+				if (leg.getRoute() instanceof ExperimentalTransitRoute) {
+					ExperimentalTransitRoute tRoute = (ExperimentalTransitRoute) leg.getRoute();
+					tRoute.setTravelTime(leg.getTravelTime());
+					tRoute.setDistance(RouteUtils.calcDistance(tRoute, transitSchedule, network));
+					final Coord interactionCoord = this.transitSchedule.getFacilities().get(tRoute.getAccessStopId()).getCoord();
+					final Id<Link> interactionLinkId = tRoute.getStartLinkId();
+					trip.add(createPtInteractionActivity(interactionCoord, interactionLinkId));
+					nextCoord = this.transitSchedule.getFacilities().get(tRoute.getEgressStopId()).getCoord();
+				} else { // walk legs don't have a coord, use the coord from the last egress point
+					if (i == baseTrip.size() - 1) {
+						// egress leg ...
+						ExperimentalTransitRoute tRoute = (ExperimentalTransitRoute) baseTrip.get(baseTrip.size() - 2).getRoute();
+						Facility lastFromFacility = this.transitSchedule.getFacilities().get(tRoute.getEgressStopId());
+						Route route = createWalkRoute(toFacility, departureTime, person, lastFromFacility);
+						route.setTravelTime(leg.getTravelTime());
+						// ... therefore we overwrite the original route with a real walk route:
+						leg.setRoute(route);
+					}
+					// but first add the pt interaction activity:
+					final Coord interactionCoord = nextCoord;
+					final Id<Link> interactionLinkId = leg.getRoute().getStartLinkId();
+					trip.add(createPtInteractionActivity(interactionCoord, interactionLinkId));
+				}
+				// add the leg:
+				trip.add(leg);
+			}
+			i++;
+		}
+		return trip;
+	}
 
-    @Override
-    public StageActivityTypes getStageActivityTypes() {
-        return CHECKER;
-    }
+	private Route createWalkRoute(final Facility toFacility, double departureTime, Person person, Facility fromFacility) {
+		Route route = new GenericRouteImpl(fromFacility.getLinkId(), toFacility.getLinkId());
+		final List<? extends PlanElement> walkRoute = walkRouter.calcRoute(fromFacility, toFacility, departureTime, person);
+		route.setDistance(((Leg) walkRoute.get(0)).getRoute().getDistance());
+		return route;
+	}
+
+	private ActivityImpl createPtInteractionActivity(final Coord interactionCoord, final Id<Link> interactionLink) {
+		ActivityImpl act =
+				new ActivityImpl(
+						PtConstants.TRANSIT_ACTIVITY_TYPE,
+						interactionCoord,
+						interactionLink);
+		act.setMaximumDuration(0.0);
+		return act;
+	}
+
+	@Override
+	public StageActivityTypes getStageActivityTypes() {
+		return CHECKER;
+	}
 } 

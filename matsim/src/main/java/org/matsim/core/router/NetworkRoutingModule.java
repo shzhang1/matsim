@@ -43,7 +43,10 @@ import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.Facility;
 
 /**
- * @thibautd
+ * This wraps a "computer science" {@link LeastCostPathCalculator}, which routes from a node to another node, into something that
+ * routes from a {@link Facility} to another {@link Facility}, as we need in MATSim.
+ * 
+ * @author thibautd
  */
 public class NetworkRoutingModule implements RoutingModule {
 
