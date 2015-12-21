@@ -83,8 +83,8 @@ public class NetworkRoutingModule implements RoutingModule {
 		double travTime = routeLeg(
 				person,
 				newLeg,
-				new FacilityWrapper( fromFacility ),
-				new FacilityWrapper( toFacility ),
+				fromFacility.getLinkId(),
+				toFacility.getLinkId(),
 				departureTime);
 
 		// otherwise, information may be lost
@@ -103,86 +103,18 @@ public class NetworkRoutingModule implements RoutingModule {
 		return "[NetworkRoutingModule: mode="+mode+"]";
 	}
 
-	private static class FacilityWrapper implements Activity {
-		private final Facility wrapped;
 
-		public FacilityWrapper(final Facility toWrap) {
-			this.wrapped = toWrap;
-		}
-
-		@Override
-		public double getEndTime() {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public void setEndTime(double seconds) {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public String getType() {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public void setType(String type) {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public Coord getCoord() {
-			return wrapped.getCoord();
-		}
-
-		@Override
-		public double getStartTime() {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public void setStartTime(double seconds) {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public double getMaximumDuration() {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public void setMaximumDuration(double seconds) {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public Id<Link> getLinkId() {
-			return wrapped.getLinkId();
-		}
-
-		@Override
-		public Id<ActivityFacility> getFacilityId() {
-			throw new UnsupportedOperationException( "only facility fields access are supported" );
-		}
-
-		@Override
-		public String toString() {
-			return "[FacilityWrapper: wrapped="+wrapped+"]";
-		}
-	}
-
-
-	/*package (Tests)*/ double routeLeg(Person person, Leg leg, Activity fromAct, Activity toAct, double depTime) {
+	/*package (Tests)*/ double routeLeg(Person person, Leg leg, Id<Link> fromLinkId, Id<Link> toLinkId, double depTime) {
 		double travTime = 0;
-		Link fromLink = this.network.getLinks().get(fromAct.getLinkId());
-		Link toLink = this.network.getLinks().get(toAct.getLinkId());
+		Link fromLink = this.network.getLinks().get(fromLinkId);
+		Link toLink = this.network.getLinks().get(toLinkId);
 
 		/* Remove this and next three lines once debugged. */
 		if(fromLink == null || toLink == null){
 			Logger.getLogger(NetworkRoutingModule.class).error("  ==>  null from/to link for person " + person.getId().toString());
 		}
-		if (fromLink == null) throw new RuntimeException("fromLink "+fromAct.getLinkId()+" missing.");
-		if (toLink == null) throw new RuntimeException("toLink "+toAct.getLinkId()+" missing.");
+		if (fromLink == null) throw new RuntimeException("fromLink "+fromLinkId+" missing.");
+		if (toLink == null) throw new RuntimeException("toLink "+toLinkId+" missing.");
 
 		Node startNode = fromLink.getToNode();	// start at the end of the "current" link
 		Node endNode = toLink.getFromNode(); // the target is the start of the link

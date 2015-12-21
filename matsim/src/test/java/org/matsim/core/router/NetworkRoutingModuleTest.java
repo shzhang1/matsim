@@ -69,7 +69,7 @@ public class NetworkRoutingModuleTest {
                         f.s.getPopulation().getFactory(),
                         f.s.getNetwork(),
                         routeAlgo,
-                        routeFactory).routeLeg(person, leg, fromAct, toAct, 7.0*3600);
+                        routeFactory).routeLeg(person, leg, fromAct.getLinkId(), toAct.getLinkId(), 7.0*3600);
 		Assert.assertEquals(100.0, tt, 1e-8);
 		Assert.assertEquals(100.0, leg.getTravelTime(), 1e-8);
 		Assert.assertTrue(leg.getRoute() instanceof NetworkRoute);
@@ -103,7 +103,7 @@ public class NetworkRoutingModuleTest {
 							routeAlgo,
 							routeFactory) ;
 
-			double tt = router.routeLeg(person, leg, fromAct, toAct, 7.0*3600);
+			double tt = router.routeLeg(person, leg, fromAct.getLinkId(), toAct.getLinkId(), 7.0*3600);
 			Assert.assertEquals(100.0, tt, 1e-8);
 			Assert.assertEquals(100.0, leg.getTravelTime(), 1e-8);
 			Assert.assertTrue(leg.getRoute() instanceof NetworkRoute);
@@ -130,7 +130,7 @@ public class NetworkRoutingModuleTest {
 							routeAlgo,
 							routeFactory) ;
 
-			double tt = router.routeLeg(person, leg, fromAct, toAct, 7.0*3600);
+			double tt = router.routeLeg(person, leg, fromAct.getLinkId(), toAct.getLinkId(), 7.0*3600);
 			Assert.assertEquals(100.0, tt, 1e-8);
 			Assert.assertEquals(100.0, leg.getTravelTime(), 1e-8);
 			Assert.assertTrue(leg.getRoute() instanceof NetworkRoute);
