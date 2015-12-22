@@ -55,25 +55,38 @@ public class TripRouterFactoryModule extends AbstractModule {
         install(new TransitRouterModule());
         bind(SingleModeNetworksCache.class).asEagerSingleton();
         PlansCalcRouteConfigGroup routeConfigGroup = getConfig().plansCalcRoute();
+        
+        // bind all freespeed factor routers from config:
         for (String mode : routeConfigGroup.getTeleportedModeFreespeedFactors().keySet()) {
             if (getConfig().transit().isUseTransit() && getConfig().transit().getTransitModes().contains(mode)) {
                 // default config contains "pt" as teleported mode, but if we have simulated transit, this is supposed to override it
                 // better solve this on the config level eventually.
                 continue;
             }
-            addRoutingModuleBinding(mode).toProvider(new PseudoTransitRoutingModuleProvider(getConfig().plansCalcRoute().getModeRoutingParams().get(mode)));
+            addRoutingModuleBinding(mode).toProvider(new PseudoTransitRoutingModuleProvider(routeConfigGroup.getModeRoutingParams().get(mode)));
         }
+        
+        // bind all beeline speed routers from config:
+        // (I assume this overwrites freespeed factor routers, but maybe it throws an exception instead. kai, dec'15)
         for (String mode : routeConfigGroup.getTeleportedModeSpeeds().keySet()) {
-            addRoutingModuleBinding(mode).toProvider(new TeleportationRoutingModuleProvider(getConfig().plansCalcRoute().getModeRoutingParams().get(mode)));
+            addRoutingModuleBinding(mode).toProvider(new TeleportationRoutingModuleProvider(routeConfigGroup.getModeRoutingParams().get(mode)));
         }
+        
+        // bind all network mode routers from config: 
         for (String mode : routeConfigGroup.getNetworkModes()) {
             addRoutingModuleBinding(mode).toProvider(new NetworkRoutingModuleProvider(mode));
         }
+        
+        // bind the transit router if transit is set:
         if (getConfig().transit().isUseTransit()) {
             for (String mode : getConfig().transit().getTransitModes()) {
                 addRoutingModuleBinding(mode).toProvider(TransitRoutingModuleProvider.class);
             }
+            // bind the transit-walk router to whatever is there as walk router:
             addRoutingModuleBinding(TransportMode.transit_walk).to(Key.get(RoutingModule.class, Names.named(TransportMode.walk)));
+            // (I think this works since we assume that somewhere above the walk router is already defined. kai, dec'15)
+            // (yy may also mean that we cannot define transit walk speed separately from normal walk speed?!  This is, however, not
+            // totally terrible: You could just define your own install method, based on the above.  kai, dec'15)
         }
     }
 
@@ -107,7 +120,7 @@ public class TripRouterFactoryModule extends AbstractModule {
         Map<String, TravelTime> travelTimes;
 
         @Inject
-        Map<String, TravelDisutilityFactory> travelDisutilityFactory;
+        Map<String, TravelDisutilityFactory> travelDisutilityFactories;
 
         @Inject
         SingleModeNetworksCache singleModeNetworksCache;
@@ -147,7 +160,7 @@ public class TripRouterFactoryModule extends AbstractModule {
                 }
             }
 
-            TravelDisutilityFactory travelDisutilityFactory = this.travelDisutilityFactory.get(mode);
+            TravelDisutilityFactory travelDisutilityFactory = this.travelDisutilityFactories.get(mode);
             if (travelDisutilityFactory == null) {
                 throw new RuntimeException("No TravelDisutilityFactory bound for mode "+mode+".");
             }
