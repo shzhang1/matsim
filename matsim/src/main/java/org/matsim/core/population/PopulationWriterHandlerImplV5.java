@@ -236,10 +236,18 @@ import org.matsim.core.utils.misc.Time;
 		out.write(route.getRouteType());
 		out.write("\"");
 		out.write(" start_link=\"");
-		out.write(route.getStartLinkId().toString());
+		if ( route.getStartLinkId()!=null ) {
+			out.write(route.getStartLinkId().toString());
+		} else {
+			out.write("null");
+		}
 		out.write("\"");
 		out.write(" end_link=\"");
-		out.write(route.getEndLinkId().toString());
+		if ( route.getEndLinkId()!=null ) {
+			out.write(route.getEndLinkId().toString());
+		} else {
+			out.write("null") ;
+		}
 		out.write("\"");
 		out.write(" trav_time=\"");
 		out.write(Time.writeTime(route.getTravelTime()));

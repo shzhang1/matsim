@@ -46,7 +46,7 @@ import java.util.*;
  *
  * @author mrieser
  */
-public class TransitRouterImpl implements TransitRouter {
+public final class TransitRouterImpl implements TransitRouter {
 
     private final TransitRouterNetwork transitNetwork;
 

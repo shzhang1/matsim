@@ -18,11 +18,14 @@
  * *********************************************************************** */
 package org.matsim.core.router;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
@@ -30,14 +33,18 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.api.core.v01.population.PopulationFactory;
+import org.matsim.api.core.v01.population.Route;
 import org.matsim.core.network.NetworkUtils;
+import org.matsim.core.population.ActivityImpl;
 import org.matsim.core.population.LegImpl;
 import org.matsim.core.population.routes.ModeRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.router.util.LeastCostPathCalculator;
 import org.matsim.core.router.util.LeastCostPathCalculator.Path;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.facilities.Facility;
+
 
 /**
  * This wraps a "computer science" {@link LeastCostPathCalculator}, which routes from a node to another node, into something that
@@ -45,9 +52,7 @@ import org.matsim.facilities.Facility;
  * 
  * @author thibautd
  */
-public final class NetworkRoutingModule implements RoutingModule {
-	// I think it makes sense to NOT add the bushwhacking mode directly into here ...
-	// ... since it makes sense be able to to route from facility.getLinkId() to facility.getLinkId(). kai, dec'15
+public final class NetworkRoutingInclEgressAccessModule implements RoutingModule {
 
 	private final String mode;
 	private final PopulationFactory populationFactory;
@@ -56,8 +61,7 @@ public final class NetworkRoutingModule implements RoutingModule {
 	private final ModeRouteFactory routeFactory;
 	private final LeastCostPathCalculator routeAlgo;
 
-
-	 public NetworkRoutingModule(
+	public NetworkRoutingInclEgressAccessModule(
 			final String mode,
 			final PopulationFactory populationFactory,
 			final Network network,
@@ -76,21 +80,101 @@ public final class NetworkRoutingModule implements RoutingModule {
 			final Facility toFacility,
 			final double departureTime,
 			final Person person) {
-		Leg newLeg = populationFactory.createLeg( mode );
-		newLeg.setDepartureTime( departureTime );
 
-		double travTime = routeLeg(
-				person,
-				newLeg,
-				fromFacility.getLinkId(),
-				toFacility.getLinkId(),
-				departureTime);
+		final Id<Link> accessActLinkId = fromFacility.getLinkId();
+		final Id<Link> egressActLinkId = toFacility.getLinkId();
+		double now = departureTime ;
 
-		// otherwise, information may be lost
-		newLeg.setTravelTime( travTime );
+		List<PlanElement> result = new ArrayList<>() ;
 
-		return Arrays.asList( newLeg );
+		// === access:
+		{
+			final Coord fromCoord = fromFacility.getCoord();
+			if ( fromCoord != null ) { // otherwise the trip starts directly on the link; no need to bushwhack
+
+				Coord accessActCoord = network.getLinks().get( fromFacility.getLinkId() ).getToNode().getCoord() ;
+				// yy maybe use orthogonal distance instead?
+				Assert.assertNotNull( accessActCoord );
+
+				Leg accessLeg = this.populationFactory.createLeg( TransportMode.access_walk ) ;
+				accessLeg.setDepartureTime( now );
+				now += routeBushwhackingLeg(person, accessLeg, fromCoord, accessActCoord, now ) ;
+
+				result.add( accessLeg ) ;
+
+				result.add( createInteractionActivity(accessActCoord, accessActLinkId) ) ;
+			}
+		}
+
+		// === compute the network leg:
+		{
+			Leg newLeg = populationFactory.createLeg( mode );
+			newLeg.setDepartureTime( now );
+			now += routeLeg( person, newLeg, accessActLinkId, egressActLinkId, now );
+
+			result.add( newLeg ) ;
+		}
+
+		// === egress:
+		{
+			final Coord toCoord = toFacility.getCoord();
+			if ( toCoord != null ) { // otherwise the trip ends directly on the link; no need to bushwhack
+
+				Coord egressActCoord = network.getLinks().get( egressActLinkId ).getToNode().getCoord() ;
+				// yy maybe use orthogonal distance instead?
+				Assert.assertNotNull( egressActCoord );
+
+				result.add( createInteractionActivity( egressActCoord, egressActLinkId ) ) ;
+
+				Leg egressLeg = this.populationFactory.createLeg( TransportMode.egress_walk ) ;
+				egressLeg.setDepartureTime( now );
+				now += routeBushwhackingLeg(person, egressLeg, egressActCoord, toCoord, now ) ;
+
+				result.add( egressLeg ) ;
+			}
+		}
+
+		return result ;
 	}
+	
+	private ActivityImpl createInteractionActivity(final Coord interactionCoord, final Id<Link> interactionLink) {
+		ActivityImpl act =
+				new ActivityImpl(
+						this.mode + "_interaction",
+						interactionCoord,
+						interactionLink);
+		act.setMaximumDuration(0.0);
+		return act;
+	}
+
+
+	private double routeBushwhackingLeg(Person person, Leg leg, Coord fromCoord, Coord toCoord, double depTime) {
+		// I don't think that it makes sense to use a RoutingModule for this, since that again makes assumptions about how to
+		// map facilities, and if you follow throgh to the teleportation routers one even finds activity wrappers, which is yet another
+		// complication which I certainly don't want here.  kai, dec'15
+		
+		
+		// make simple assumption about distance and walking speed
+		double dist = CoordUtils.calcDistance(fromCoord,toCoord);
+
+		// create an empty route, but with realistic travel time
+		Route route = this.routeFactory.createRoute(Route.class, null, null ); 
+
+		double beelineDistanceFactor = 1.3 ;
+		double networkTravelSpeed = 2.0 ;
+		// yyyyyy take this from config!
+
+		double estimatedNetworkDistance = dist * beelineDistanceFactor;
+		int travTime = (int) (estimatedNetworkDistance / networkTravelSpeed);
+		route.setTravelTime(travTime);
+		route.setDistance(estimatedNetworkDistance);
+		leg.setRoute(route);
+		leg.setDepartureTime(depTime);
+		leg.setTravelTime(travTime);
+		((LegImpl) leg).setArrivalTime(depTime + travTime); // yy something needs to be done once there are alternative implementations of the interface.  kai, apr'10
+		return travTime;
+	}
+
 
 	@Override
 	public StageActivityTypes getStageActivityTypes() {
@@ -110,7 +194,7 @@ public final class NetworkRoutingModule implements RoutingModule {
 
 		/* Remove this and next three lines once debugged. */
 		if(fromLink == null || toLink == null){
-			Logger.getLogger(NetworkRoutingModule.class).error("  ==>  null from/to link for person " + person.getId().toString());
+			Logger.getLogger(NetworkRoutingInclEgressAccessModule.class).error("  ==>  null from/to link for person " + person.getId().toString());
 		}
 		if (fromLink == null) throw new RuntimeException("fromLink "+fromLinkId+" missing.");
 		if (toLink == null) throw new RuntimeException("toLink "+toLinkId+" missing.");
@@ -118,8 +202,8 @@ public final class NetworkRoutingModule implements RoutingModule {
 		Node startNode = fromLink.getToNode();	// start at the end of the "current" link
 		Node endNode = toLink.getFromNode(); // the target is the start of the link
 
-//		CarRoute route = null;
-//		Path path = null;
+		//		CarRoute route = null;
+		//		Path path = null;
 		if (toLink != fromLink) {
 			// (a "true" route)
 			Path path = this.routeAlgo.calcLeastCostPath(startNode, endNode, depTime, person, null);

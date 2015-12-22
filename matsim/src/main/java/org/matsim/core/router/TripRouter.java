@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.Assert;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -154,6 +155,9 @@ public final class TripRouter implements MatsimExtensionPoint {
 		RoutingModule module = routingModules.get( mainMode );
 
 		if (module != null) {
+//			Assert.assertNotNull(fromFacility.getCoord());
+//			Assert.assertNotNull(toFacility.getCoord());
+			
 			final List<? extends PlanElement> trip =
 					module.calcRoute(
 						fromFacility,

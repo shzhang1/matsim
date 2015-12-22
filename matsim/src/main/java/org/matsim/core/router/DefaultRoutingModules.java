@@ -57,7 +57,7 @@ public final class DefaultRoutingModules {
 	}
 
 	public static RoutingModule createNetworkRouter( String mode, PopulationFactory popFact, Network net, final LeastCostPathCalculator routeAlgo ) {
-		return new NetworkRoutingModule(
+		return new NetworkRoutingInclEgressAccessModule(
 				mode,
 				popFact,
 				net,

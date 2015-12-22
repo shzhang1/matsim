@@ -19,6 +19,7 @@
  * *********************************************************************** */
 package org.matsim.core.router;
 
+import org.junit.Assert;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.population.ActivityImpl;
@@ -81,14 +82,21 @@ public class PlanRouter implements PlanAlgorithm, PersonAlgorithm {
 		final List<Trip> trips = TripStructureUtils.getTrips( plan , routingHandler.getStageActivityTypes() );
 
 		for (Trip oldTrip : trips) {
-            final List<? extends PlanElement> newTrip =
-				routingHandler.calcRoute(
-						routingHandler.getMainModeIdentifier().identifyMainMode( oldTrip.getTripElements() ),
-						toFacility( oldTrip.getOriginActivity() ),
-						toFacility( oldTrip.getDestinationActivity() ),
-						calcEndOfActivity( oldTrip.getOriginActivity() , plan ),
-						plan.getPerson() );
-            putVehicleFromOldTripIntoNewTripIfMeaningful(oldTrip, newTrip);
+			
+			final Facility originFacility = toFacility( oldTrip.getOriginActivity() );
+			final Facility destinationFacility = toFacility( oldTrip.getDestinationActivity() );
+			
+//			Assert.assertNotNull( originFacility.getCoord() );
+//			Assert.assertNotNull( destinationFacility.getCoord() );
+			
+			final List<? extends PlanElement> newTrip =
+					routingHandler.calcRoute(
+							routingHandler.getMainModeIdentifier().identifyMainMode( oldTrip.getTripElements() ),
+							originFacility,
+							destinationFacility,
+							calcEndOfActivity( oldTrip.getOriginActivity() , plan ),
+							plan.getPerson() );
+			putVehicleFromOldTripIntoNewTripIfMeaningful(oldTrip, newTrip);
 			TripRouter.insertTrip(
 					plan, 
 					oldTrip.getOriginActivity(),
