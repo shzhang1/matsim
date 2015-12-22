@@ -265,6 +265,8 @@ public class Controler extends AbstractController implements ControlerI {
 		// ActivityUtilityParameters will set the scoreAtAll flag to false (also introduced in nov/12).  kai, nov'12
 		transitActivityParams.setOpeningTime(0.) ;
 		transitActivityParams.setClosingTime(0.) ;
+		// added dec'15:
+		transitActivityParams.setScoringThisActivityAtAll(false);
 
 		this.config.planCalcScore().addActivityParams(transitActivityParams);
 		// yy would this overwrite user-defined definitions of "pt interaction"?

@@ -52,25 +52,19 @@ VisData {
 
 	@Override
 	public boolean handleDeparture(double now, MobsimAgent agent, Id<Link> linkId) {
-    	if ( agent.getExpectedTravelTime()==null || agent.getExpectedTravelTime()==Time.UNDEFINED_TIME ) {
-    		Logger.getLogger( this.getClass() ).info( "mode: " + agent.getMode() );
-    		throw new RuntimeException("teleportation does not work when travel time is undefined.  There is also really no magic fix for this,"
-    				+ " since otherwise mode choice optimization will eventually lead to all legs teleported.  kai/mz, apr'15") ;
-    	}
+		if ( agent.getExpectedTravelTime()==null || agent.getExpectedTravelTime()==Time.UNDEFINED_TIME ) {
+			Logger.getLogger( this.getClass() ).info( "mode: " + agent.getMode() );
+			throw new RuntimeException("teleportation does not work when travel time is undefined.  There is also really no magic fix for this,"
+					+ " since otherwise mode choice optimization will eventually lead to all legs teleported.  kai/mz, apr'15") ;
+		}
 		double arrivalTime = now + agent.getExpectedTravelTime();
-		this.teleportationList.add(new Tuple<>(arrivalTime,
-				agent));
-		Id<Person> agentId = agent.getId();
-		Link currLink = this.scenario
-				.getNetwork().getLinks().get(linkId);
-		Link destLink = this.scenario
-				.getNetwork().getLinks().get(agent.getDestinationLinkId());
-		double travTime = agent.getExpectedTravelTime();
+		this.teleportationList.add(new Tuple<>(arrivalTime, agent));
+		Link currLink = this.scenario.getNetwork().getLinks().get(linkId);
+		Link destLink = this.scenario.getNetwork().getLinks().get(agent.getDestinationLinkId());
 		Coord fromCoord = currLink.getToNode().getCoord();
 		Coord toCoord = destLink.getToNode().getCoord();
-		TeleportationVisData agentInfo = new TeleportationVisData(now, agentId,
-				fromCoord, toCoord, travTime);
-		this.teleportationData.put(agentId, agentInfo);
+		TeleportationVisData agentInfo = new TeleportationVisData(now, agent.getId(), fromCoord, toCoord, agent.getExpectedTravelTime());
+		this.teleportationData.put(agent.getId(), agentInfo);
 		return true;
 	}
 

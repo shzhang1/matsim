@@ -44,6 +44,7 @@ import org.matsim.core.router.util.LeastCostPathCalculator;
 import org.matsim.core.router.util.LeastCostPathCalculator.Path;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.facilities.Facility;
+import org.matsim.pt.PtConstants;
 
 
 /**
@@ -60,6 +61,7 @@ public final class NetworkRoutingInclEgressAccessModule implements RoutingModule
 	private final Network network;
 	private final ModeRouteFactory routeFactory;
 	private final LeastCostPathCalculator routeAlgo;
+	private String stageActivityType;
 
 	public NetworkRoutingInclEgressAccessModule(
 			final String mode,
@@ -72,6 +74,7 @@ public final class NetworkRoutingInclEgressAccessModule implements RoutingModule
 		this.routeFactory = routeFactory;
 		this.mode = mode;
 		this.populationFactory = populationFactory;
+		this.stageActivityType = this.mode + " interaction";
 	}
 
 	@Override
@@ -98,7 +101,8 @@ public final class NetworkRoutingInclEgressAccessModule implements RoutingModule
 
 				Leg accessLeg = this.populationFactory.createLeg( TransportMode.access_walk ) ;
 				accessLeg.setDepartureTime( now );
-				now += routeBushwhackingLeg(person, accessLeg, fromCoord, accessActCoord, now ) ;
+				now += routeBushwhackingLeg(person, accessLeg, fromCoord, accessActCoord, now, accessActLinkId, accessActLinkId ) ;
+				// (in this setup, street address of starting point and link of interaction activity are the same)
 
 				result.add( accessLeg ) ;
 
@@ -128,7 +132,8 @@ public final class NetworkRoutingInclEgressAccessModule implements RoutingModule
 
 				Leg egressLeg = this.populationFactory.createLeg( TransportMode.egress_walk ) ;
 				egressLeg.setDepartureTime( now );
-				now += routeBushwhackingLeg(person, egressLeg, egressActCoord, toCoord, now ) ;
+				now += routeBushwhackingLeg(person, egressLeg, egressActCoord, toCoord, now, egressActLinkId, egressActLinkId ) ;
+				// (in this setup, link of interaction activity and street address of destination are the same)
 
 				result.add( egressLeg ) ;
 			}
@@ -138,27 +143,25 @@ public final class NetworkRoutingInclEgressAccessModule implements RoutingModule
 	}
 	
 	private ActivityImpl createInteractionActivity(final Coord interactionCoord, final Id<Link> interactionLink) {
-		ActivityImpl act =
-				new ActivityImpl(
-						this.mode + "_interaction",
-						interactionCoord,
-						interactionLink);
+		ActivityImpl act = new ActivityImpl( stageActivityType, interactionCoord, interactionLink);
 		act.setMaximumDuration(0.0);
 		return act;
 	}
 
 
-	private double routeBushwhackingLeg(Person person, Leg leg, Coord fromCoord, Coord toCoord, double depTime) {
+	private double routeBushwhackingLeg(Person person, Leg leg, Coord fromCoord, Coord toCoord, double depTime, Id<Link> dpLinkId, Id<Link> arLinkId) {
 		// I don't think that it makes sense to use a RoutingModule for this, since that again makes assumptions about how to
 		// map facilities, and if you follow throgh to the teleportation routers one even finds activity wrappers, which is yet another
 		// complication which I certainly don't want here.  kai, dec'15
 		
+		// dpLinkId, arLinkId need to be in Route for lots of code to function.   So I am essentially putting in the "street address"
+		// for completeness. Note that if we are walking to a parked car, this can be different from the car link id!!  kai, dec'15
 		
 		// make simple assumption about distance and walking speed
 		double dist = CoordUtils.calcDistance(fromCoord,toCoord);
 
 		// create an empty route, but with realistic travel time
-		Route route = this.routeFactory.createRoute(Route.class, null, null ); 
+		Route route = this.routeFactory.createRoute(Route.class, dpLinkId, arLinkId ); 
 
 		double beelineDistanceFactor = 1.3 ;
 		double networkTravelSpeed = 2.0 ;
@@ -178,7 +181,16 @@ public final class NetworkRoutingInclEgressAccessModule implements RoutingModule
 
 	@Override
 	public StageActivityTypes getStageActivityTypes() {
-		return EmptyStageActivityTypes.INSTANCE;
+		return new StageActivityTypes(){
+			@Override
+			public boolean isStageActivity(String activityType) {
+				if ( stageActivityType.equals( activityType ) ) {
+					return true ;
+				} else {
+					return false ;
+				}
+			}
+		} ;
 	}
 
 	@Override
