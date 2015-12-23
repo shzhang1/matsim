@@ -126,11 +126,11 @@ public final class NetworkRoutingModule implements RoutingModule {
 			if (path == null) throw new RuntimeException("No route found from node " + startNode.getId() + " to node " + endNode.getId() + ".");
 			NetworkRoute route = this.routeFactory.createRoute(NetworkRoute.class, fromLink.getId(), toLink.getId());
 			route.setLinkIds(fromLink.getId(), NetworkUtils.getLinkIds(path.links), toLink.getId());
-			route.setTravelTime((int) path.travelTime);
+			route.setTravelTime((int) path.travelTime); // yyyy why int?  kai, dec'15
 			route.setTravelCost(path.travelCost);
 			route.setDistance(RouteUtils.calcDistance(route, this.network));
 			leg.setRoute(route);
-			travTime = (int) path.travelTime;
+			travTime = (int) path.travelTime; // yyyy why int?  kai, dec'15
 		} else {
 			// create an empty route == staying on place if toLink == endLink
 			// note that we still do a route: someone may drive from one location to another on the link. kai, dec'15
