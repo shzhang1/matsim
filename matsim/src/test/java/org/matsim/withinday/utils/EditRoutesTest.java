@@ -38,6 +38,7 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Injector;
 import org.matsim.core.population.ActivityImpl;
 import org.matsim.core.population.PlanImpl;
+import org.matsim.core.population.PopulationFactoryImpl;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.ModeRouteFactory;
@@ -76,6 +77,8 @@ public class EditRoutesTest extends MatsimTestCase {
 	 * @author cdobler
 	 */
 	public void testReplanFutureLegRoute() {
+		// this is ok (we can still replan a single leg with the computer science router). kai, dec'15
+		
 		createScenario();
 		EditRoutes ed = new EditRoutes(scenario.getNetwork(), pathCalculator, routeFactories);
 		
@@ -116,6 +119,8 @@ public class EditRoutesTest extends MatsimTestCase {
 	}
 	
 	public void testRelocateFutureLegRoute() {
+		// yyyy this is NOT ok (we can NOT relocate a single leg without adapting the egress leg). kai, dec'15
+
 		createScenario();
 		EditRoutes ed = new EditRoutes(scenario.getNetwork(), pathCalculator, routeFactories);
 		
@@ -173,6 +178,8 @@ public class EditRoutesTest extends MatsimTestCase {
 	 * @author cdobler
 	 */
 	public void testReplanCurrentLegRoute() {
+		// this is ok (we can still replan a single leg with the computer science router). kai, dec'15
+		
 		createScenario();
 		EditRoutes ed = new EditRoutes(scenario.getNetwork(), pathCalculator, routeFactories);
 		
@@ -391,7 +398,7 @@ public class EditRoutesTest extends MatsimTestCase {
 		TravelDisutility costFunction = new OnlyTimeDependentTravelDisutility( timeFunction ) ;
 		this.pathCalculator = new Dijkstra(scenario.getNetwork(), costFunction, timeFunction) ;
 		
-		this.routeFactories = new ModeRouteFactory() ;
+		this.routeFactories = ((PopulationFactoryImpl)scenario.getPopulation().getFactory()).getModeRouteFactory() ;
 	}
 	
 	/**

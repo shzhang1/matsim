@@ -52,12 +52,26 @@ import org.matsim.facilities.Facility;
 import org.matsim.vehicles.Vehicle;
 
 public class EditRoutes {
+	/*
+	* Design thoughts while adding access/egress walk legs to car trips:
+	* . Matsim has a computer science router (LeastCostPathCalculator, from node to node) and a behavioral router (RoutingModule, from
+	*    facility to facility).
+	* . For something like replanCurrentRoute it does not really make sense to start at a facility.
+	* . So it seems that for replanCurrentRoute, the computer science router makes more sense.
+	* . This is, however, not true for all the relocate calls, since they also need to reroute the egress leg.
+	* yyyy So, in short: all the relocate methods need to be adapted.  For "future", this is easy.  For "current", the splicing needs to be re-done.  kai, dec'15
+	* 
+	* Hm, next thought: It is not fully clear how relocateXxx has worked in the past, since also there the succeeding activity would 
+	* have needed adaptation. ???
+	*/ 
 
 	private static final Logger logger = Logger.getLogger(EditRoutes.class);
 	
 	private  Network network ;
 	private  LeastCostPathCalculator pathCalculator ;
 	private  ModeRouteFactory routeFactories ;
+	
+	public EditRoutes(){} // for backwards compatibility
 	
 	public EditRoutes( Network network, LeastCostPathCalculator pathCalculator, ModeRouteFactory routeFactory ) {
 		this.network = network ;
@@ -69,7 +83,10 @@ public class EditRoutes {
 	 * Re-locates a future route. The route is given by its leg.
 	 * 
 	 * @return true when replacing the route worked, false when something went wrong
+	 * 
+	 * @deprecated switch this to relocateFutureTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	 */
+	@Deprecated // switch this to relocateFutureTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	public boolean relocateFutureLegRoute(Leg leg, Id<Link> fromLinkId, Id<Link> toLinkId, Person person ) {
 				
 		Link fromLink = network.getLinks().get(fromLinkId);
@@ -96,7 +113,10 @@ public class EditRoutes {
 	 * Re-locates a future route. The route is given by its leg.
 	 * 
 	 * @return true when replacing the route worked, false when something went wrong
+	 * 
+	 * @deprecated switch this to relocateFutureTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	 */
+	@Deprecated // switch this to relocateFutureTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	public static boolean relocateFutureLegRoute(Leg leg, Id<Link> fromLinkId, Id<Link> toLinkId, Person person, Network network, TripRouter tripRouter) {
 				
 		Link fromLink = network.getLinks().get(fromLinkId);
@@ -129,9 +149,7 @@ public class EditRoutes {
 	 * @return true when replacing the route worked, false when something went wrong
 	 */
 	public static boolean replanFutureLegRoute(Leg leg, Person person, Network network, TripRouter tripRouter) {
-		
 		return relocateFutureLegRoute( leg, leg.getRoute().getStartLinkId(), leg.getRoute().getEndLinkId(), person, network, tripRouter ) ;
-		
 	}
 
 	/**
@@ -143,9 +161,7 @@ public class EditRoutes {
 	 * @return true when replacing the route worked, false when something went wrong
 	 */
 	public boolean replanFutureLegRoute(Leg leg, Person person ) {
-		
 		return relocateFutureLegRoute( leg, leg.getRoute().getStartLinkId(), leg.getRoute().getEndLinkId(), person ) ;
-		
 	}
 
 	/**
@@ -153,11 +169,8 @@ public class EditRoutes {
 	 * by a new one. This is e.g. necessary when replacing a pt trip which might consists of multiple legs
 	 * and pt_interaction activities.  
 	 * This might become the future default approach.
-	 * 
-	 * @return
 	 */
-	public static boolean replanFutureTrip(Trip trip, Plan plan, String mainMode, double departureTime, 
-			Network network, TripRouter tripRouter) {
+	public static boolean replanFutureTrip(Trip trip, Plan plan, String mainMode, double departureTime, Network network, TripRouter tripRouter) {
 		
 		Person person = plan.getPerson();
 		
@@ -178,6 +191,10 @@ public class EditRoutes {
 		return true;
 	}
 	
+	/**
+	 * @deprecated switch this to (a new) relocateCurrentTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
+	 */
+	@Deprecated // switch this to (a new) relocateCurrentTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	public static boolean relocateCurrentRoute( MobsimAgent agent, Id<Link> toLinkId, double now, Network network, TripRouter tripRouter ) {
 		Leg leg = WithinDayAgentUtils.getModifiableCurrentLeg(agent) ;
 		Person person = ((HasPerson) agent).getPerson() ;
@@ -185,11 +202,21 @@ public class EditRoutes {
 		return relocateCurrentLegRoute( leg, person, currentLinkIndex, toLinkId, now, network, tripRouter ) ;
 	}
 
+	public static boolean replanCurrentRoute( MobsimAgent agent, double now, Network network, TripRouter tripRouter ) {
+		Leg leg = WithinDayAgentUtils.getModifiableCurrentLeg(agent) ;
+		Person person = ((HasPerson) agent).getPerson() ;
+		int currentLinkIndex = WithinDayAgentUtils.getCurrentRouteLinkIdIndex(agent) ;
+		return replanCurrentLegRoute( leg, person, currentLinkIndex, now, network, tripRouter ) ;
+	}
+
 	/**
-	 * Re-locates a future route. The route is given by its leg.
+	 * Re-locates a current route. The route is given by its leg.
 	 * 
 	 * @return true when replacing the route worked, false when something went wrong
+	 * 
+	 * @deprecated switch this to (a new) relocateCurrentTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	 */
+	@Deprecated // switch this to (a new) relocateCurrentTrip, since with egress legs relocating the destination of a single leg leads to disconnected trips. kai, dec'15
 	public static boolean relocateCurrentLegRoute(Leg leg, Person person, int currentLinkIndex, Id<Link> toLinkId, double time, Network network, TripRouter tripRouter) {
 		
 		Route route = leg.getRoute();
@@ -257,7 +284,7 @@ public class EditRoutes {
 		return true;
 	}
 	
-	/*
+	/**
 	 * We create a new Plan which contains only the Leg that should be replanned and its previous and next
 	 * Activities. By doing so the PlanAlgorithm will only change the Route of that Leg.
 	 *
@@ -278,6 +305,9 @@ public class EditRoutes {
 		// This is just a special case of relocateCurrentLegRoute where the end link of the route is not changed.
 		return relocateCurrentLegRoute(leg, person, currentLinkIndex, route.getEndLinkId(), time, network, tripRouter);
 	}
+	
+	// #########################################################################################
+	// helper methods below
 
 	/**
 	 * @param plan
