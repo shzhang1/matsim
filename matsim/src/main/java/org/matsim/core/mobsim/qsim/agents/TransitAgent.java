@@ -34,6 +34,7 @@ import org.matsim.core.mobsim.qsim.interfaces.MobsimVehicle;
 import org.matsim.core.mobsim.qsim.interfaces.Netsim;
 import org.matsim.core.mobsim.qsim.pt.MobsimDriverPassengerAgent;
 import org.matsim.core.mobsim.qsim.pt.TransitVehicle;
+import org.matsim.facilities.Facility;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
@@ -175,6 +176,18 @@ public final class TransitAgent implements MobsimDriverPassengerAgent, PlanAgent
 	@Override
 	public final Id<TransitStopFacility> getDesiredDestinationStopId() {
 		return transitAgentDelegate.getDesiredDestinationStopId();
+	}
+
+	public final PlanElement getPreviousPlanElement() {
+		return this.basicAgentDelegate.getPreviousPlanElement();
+	}
+
+	public Facility getCurrentFacility() {
+		return this.basicAgentDelegate.getCurrentFacility();
+	}
+
+	public Facility getDestinationFacility() {
+		return this.basicAgentDelegate.getDestinationFacility();
 	}
 
 }

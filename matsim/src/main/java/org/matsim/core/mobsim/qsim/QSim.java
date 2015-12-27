@@ -127,8 +127,7 @@ public final class QSim extends Thread implements VisMobsim, Netsim, ActivityEnd
 	private final Map<Id<Person>,MobsimAgent> agents = new LinkedHashMap<>();
 	private final List<AgentSource> agentSources = new ArrayList<>();
 	private TransitQSimEngine transitEngine;
-
-
+	
 	/*package (for tests)*/ final InternalInterface internalInterface = new InternalInterface() {
 
 		// These methods must be synchronized, because they are called back
