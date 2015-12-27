@@ -180,6 +180,8 @@ public class EditRoutesTest extends MatsimTestCase {
 	public void testReplanCurrentLegRoute() {
 		// this is ok (we can still replan a single leg with the computer science router). kai, dec'15
 		
+		boolean old = false ;
+		
 		createScenario();
 		EditRoutes ed = new EditRoutes(scenario.getNetwork(), pathCalculator, routeFactories);
 		
@@ -193,25 +195,43 @@ public class EditRoutesTest extends MatsimTestCase {
 		
 		// expect ArrayIndexOutOfBoundsException - using illegal indices for the current position in the route
 		try {
-			ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), -1, 8.0*3600, scenario.getNetwork(), tripRouter);  
-			ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 100, 8.0*3600, scenario.getNetwork(), tripRouter);
-			fail("expected ArrayIndexOutOfBoundsException.");
+			if ( old ) {
+				ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), -1, 8.0*3600, scenario.getNetwork(), tripRouter);  
+				ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 100, 8.0*3600, scenario.getNetwork(), tripRouter);
+			} else {
+				ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), -1, 8.0*3600 );  
+				ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 100, 8.0*3600 );
+			}
+				fail("expected ArrayIndexOutOfBoundsException.");
 		} catch (ArrayIndexOutOfBoundsException e) {
 			log.debug("catched expected exception.", e);
 		}
 		
-		// create new routes for HW-trip
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, start Link
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, en-route
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, end Link
+		if ( old ) {
+			// create new routes for HW-trip
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, start Link
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, end Link
 
-		// create new routes for WH-trip
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, start Link
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, en-route
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, en-route
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 3, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, en-route
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 4, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, end Link
-		
+			// create new routes for WH-trip
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, start Link
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 3, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 4, 8.0*3600, scenario.getNetwork(), tripRouter)); // WH, end Link
+		} else {
+			// create new routes for HW-trip
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600 )); // HW, start Link
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 1, 8.0*3600 )); // HW, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 2, 8.0*3600 )); // HW, end Link
+
+			// create new routes for WH-trip
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600 )); // WH, start Link
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 1, 8.0*3600 )); // WH, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 2, 8.0*3600 )); // WH, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 3, 8.0*3600 )); // WH, en-route
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 4, 8.0*3600 )); // WH, end Link
+		}
 		/*
 		 *  replace destinations and create new routes
 		 */
@@ -219,50 +239,84 @@ public class EditRoutesTest extends MatsimTestCase {
 		createScenario();	// reset scenario
 		activityW1 = (ActivityImpl) plan.getPlanElements().get(2);
 		activityW1.setLinkId(Id.create("l2", Link.class));	// move Activity location		
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, start Link
-		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(1)).getRoute()));
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter)); // HW, start Link
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600 )); // HW, start Link
+		}
+		final NetworkRoute route = (NetworkRoute)((Leg)plan.getPlanElements().get(1)).getRoute();
+		log.warn( route );
+		assertEquals(true, checkRouteValidity(route));
 		
 		createScenario();	// reset scenario
 		activityW1 = (ActivityImpl) plan.getPlanElements().get(2);
 		activityW1.setLinkId(Id.create("l2", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter));	// HW, en-route
-		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(1)).getRoute()));
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter));	// HW, en-route
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 1, 8.0*3600 ) );	// HW, en-route			
+		}
+		assertEquals(true, checkRouteValidity(route));
 		
 		createScenario();	// reset scenario
 		activityW1 = (ActivityImpl) plan.getPlanElements().get(2);
 		activityW1.setLinkId(Id.create("l2", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter));	// HW, end Link
-		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(1)).getRoute()));
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter));	// HW, end Link
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 2, 8.0*3600 ));	// HW, end Link			
+		}
+		assertEquals(true, checkRouteValidity(route));
 		
 		// create new routes for WH-trip
 		createScenario();	// reset scenario
 		activityH2 = (ActivityImpl) plan.getPlanElements().get(4);
 		activityH2.setLinkId(Id.create("l4", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, start Link
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, start Link
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600 ));	// WH, start Link			
+		}
 		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(3)).getRoute()));
 		
 		createScenario();	// reset scenario
 		activityH2 = (ActivityImpl) plan.getPlanElements().get(4);
 		activityH2.setLinkId(Id.create("l4", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, en-route
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 1, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, en-route
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 1, 8.0*3600 ));	// WH, en-route
+		}
 		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(3)).getRoute()));
 		
 		createScenario();	// reset scenario
 		activityH2 = (ActivityImpl) plan.getPlanElements().get(4);
 		activityH2.setLinkId(Id.create("l4", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, en-route
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 2, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, en-route
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 2, 8.0*3600 ));	// WH, en-route			
+		}
 		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(3)).getRoute()));
 		
 		createScenario();	// reset scenario
 		activityH2 = (ActivityImpl) plan.getPlanElements().get(4);
 		activityH2.setLinkId(Id.create("l4", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 3, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, en-route
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 3, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, en-route
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 3, 8.0*3600 ) );	// WH, en-route			
+		}
 		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(3)).getRoute()));
 
 		createScenario();	// reset scenario
 		activityH2 = (ActivityImpl) plan.getPlanElements().get(4);
 		activityH2.setLinkId(Id.create("l4", Link.class));	// move Activity location
-		assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 4, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, end Link
+		if ( old ) {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 4, 8.0*3600, scenario.getNetwork(), tripRouter));	// WH, end Link
+		} else {
+			assertEquals(true, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 4, 8.0*3600 ));	// WH, end Link			
+		}
 		assertEquals(true, checkRouteValidity((NetworkRoute)((Leg)plan.getPlanElements().get(3)).getRoute()));
 		
 		// expect EditRoutes to return false if the Route in the leg is not a NetworkRoute
@@ -273,8 +327,13 @@ public class EditRoutesTest extends MatsimTestCase {
 		legHW.setMode(TransportMode.walk);
 		legWH.setRoute(null);
 		legWH.setMode(TransportMode.walk);
-		assertEquals(false, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter));
-		assertEquals(false, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter));
+		if ( old ) {
+			assertEquals(false, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter));
+			assertEquals(false, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600, scenario.getNetwork(), tripRouter));
+		} else {
+			assertEquals(false, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(1), plan.getPerson(), 0, 8.0*3600 ));
+			assertEquals(false, ed.replanCurrentLegRoute((Leg) plan.getPlanElements().get(3), plan.getPerson(), 0, 8.0*3600 ));
+		}
 	}
 	
 	/**
