@@ -111,7 +111,7 @@ public interface MobsimAgent extends NetworkAgent, Identifiable<Person> {
      */
     public void notifyArrivalOnLinkByNonNetworkMode(final Id<Link> linkId);
 
-    public Facility<?> getCurrentFacility() ;
+    public Facility<? extends Facility<?>> getCurrentFacility() ;
     
-    public Facility<?> getDestinationFacility() ;
+    public Facility<? extends Facility<?>> getDestinationFacility() ;
 }

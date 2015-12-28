@@ -34,7 +34,7 @@ import org.matsim.facilities.Facility;
  * in a facility interface (for example to pass to the router)
  * @author thibautd
  */
-public class ActivityWrapperFacility implements Facility {
+public class ActivityWrapperFacility implements Facility<ActivityFacility> {
 	private final Activity wrapped;
 
 	public ActivityWrapperFacility( final Activity toWrap ) {

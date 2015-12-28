@@ -182,11 +182,11 @@ public final class TransitAgent implements MobsimDriverPassengerAgent, PlanAgent
 		return this.basicAgentDelegate.getPreviousPlanElement();
 	}
 
-	public Facility getCurrentFacility() {
+	public Facility<? extends Facility<?>> getCurrentFacility() {
 		return this.basicAgentDelegate.getCurrentFacility();
 	}
 
-	public Facility getDestinationFacility() {
+	public Facility<? extends Facility<?>> getDestinationFacility() {
 		return this.basicAgentDelegate.getDestinationFacility();
 	}
 

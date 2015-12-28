@@ -352,7 +352,7 @@ public final class BasicPlanAgentImpl implements MobsimAgent, PlanAgent, Identif
 	}
 
 	@Override
-	public Facility<?> getCurrentFacility() {
+	public Facility<? extends Facility<?>> getCurrentFacility() {
 		PlanElement pe = this.getCurrentPlanElement() ;
 		Activity activity ;
 		if ( pe instanceof Activity ) {
@@ -374,7 +374,7 @@ public final class BasicPlanAgentImpl implements MobsimAgent, PlanAgent, Identif
 	}
 
 	@Override
-	public Facility<?> getDestinationFacility() {
+	public Facility<? extends Facility<?>> getDestinationFacility() {
 		PlanElement pe = this.getCurrentPlanElement() ;
 		if ( pe instanceof Leg ) {
 			Activity activity = (Activity)this.getNextPlanElement() ;

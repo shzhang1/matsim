@@ -193,11 +193,11 @@ public class PersonDriverAgentImpl implements MobsimDriverAgent, MobsimPassenger
 		driverAgentDelegate.resetCaches(); 
 	}
 
-	public Facility getCurrentFacility() {
+	public Facility<? extends Facility<?>> getCurrentFacility() {
 		return this.basicAgentDelegate.getCurrentFacility();
 	}
 
-	public Facility getDestinationFacility() {
+	public Facility<? extends Facility<?>> getDestinationFacility() {
 		return this.basicAgentDelegate.getDestinationFacility();
 	}
 
