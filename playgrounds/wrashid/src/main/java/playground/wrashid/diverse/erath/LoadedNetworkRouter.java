@@ -92,7 +92,7 @@ public class LoadedNetworkRouter {
 		Config config = ConfigUtils.loadConfig(this.configfile);
 		MatsimRandom.reset(config.global().getRandomSeed());
 		Scenario scenario = ScenarioUtils.createScenario(config);
-		new MatsimNetworkReader(scenario).readFile(config.network().getInputFile());
+		new MatsimNetworkReader(scenario.getNetwork()).readFile(config.network().getInputFile());
 		Network network = scenario.getNetwork();
 		this.config = scenario.getConfig();
 
@@ -103,7 +103,7 @@ public class LoadedNetworkRouter {
 		plansWriter.startStreaming(outputPlansFile);
 
 		// add algorithm to map coordinates to links
-		plans.addAlgorithm(new org.matsim.population.algorithms.XY2Links(network));
+		plans.addAlgorithm(new org.matsim.population.algorithms.XY2Links(network, null));
 
 		// add algorithm to estimate travel cost
 		// and which performs routing based on that

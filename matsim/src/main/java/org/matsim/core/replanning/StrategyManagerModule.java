@@ -34,6 +34,7 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.replanning.modules.ExternalModule;
 import org.matsim.core.replanning.selectors.RandomPlanSelector;
+import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -44,7 +45,9 @@ public class StrategyManagerModule extends AbstractModule {
 		int externalCounter = 0;
 		install(new DefaultPlanStrategiesModule());
 		bind(StrategyManager.class).in(Singleton.class);
+		bind(ReplanningContextImpl.class).asEagerSingleton();
 		bind(ReplanningContext.class).to(ReplanningContextImpl.class);
+		addControlerListenerBinding().to(ReplanningContextImpl.class);
 		MapBinder<StrategyConfigGroup.StrategySettings, PlanStrategy> planStrategyMapBinder = MapBinder.newMapBinder(binder(), StrategyConfigGroup.StrategySettings.class, PlanStrategy.class);
 		for (StrategyConfigGroup.StrategySettings settings : getConfig().strategy().getStrategySettings()) {
 			String name = settings.getStrategyName() ;

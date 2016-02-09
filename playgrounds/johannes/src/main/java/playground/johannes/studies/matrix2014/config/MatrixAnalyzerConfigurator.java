@@ -19,16 +19,20 @@
 
 package playground.johannes.studies.matrix2014.config;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.matsim.contrib.common.stats.LinearDiscretizer;
 import org.matsim.core.config.ConfigGroup;
-import playground.johannes.studies.matrix2014.analysis.MatrixAnalyzer;
+import playground.johannes.studies.matrix2014.analysis.MatrixComparator;
+import playground.johannes.studies.matrix2014.analysis.MatrixDistanceCompare;
+import playground.johannes.studies.matrix2014.analysis.MatrixMarginalsCompare;
+import playground.johannes.studies.matrix2014.analysis.MatrixVolumeCompare;
+import playground.johannes.synpop.analysis.AnalyzerTaskComposite;
 import playground.johannes.synpop.analysis.FileIOContext;
+import playground.johannes.synpop.analysis.HistogramWriter;
+import playground.johannes.synpop.analysis.PassThroughDiscretizerBuilder;
 import playground.johannes.synpop.gis.*;
 import playground.johannes.synpop.matrix.NumericMatrix;
 import playground.johannes.synpop.matrix.NumericMatrixIO;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author johannes
@@ -37,11 +41,13 @@ public class MatrixAnalyzerConfigurator implements DataLoader {
 
     public static final String ZONE_LAYER_NAME = "zoneLayer";
 
-    public static final String PARAM_SET_KEY = "referenceMatrix";
+    //public static final String PARAM_SET_KEY = "referenceMatrix";
 
     public static final String MATRIX_NAME = "name";
 
     public static final String MATRIX_FILE = "file";
+
+    public static final String THRESHOLD = "volumeThreshold";
 
     private final ConfigGroup config;
 
@@ -60,18 +66,44 @@ public class MatrixAnalyzerConfigurator implements DataLoader {
         String zoneLayerName = config.getValue(ZONE_LAYER_NAME);
 
         FacilityData facilityData = (FacilityData) dataPool.get(FacilityDataLoader.KEY);
-        ZoneData zoneData = (ZoneData)dataPool.get(ZoneDataLoader.KEY);
+        ZoneData zoneData = (ZoneData) dataPool.get(ZoneDataLoader.KEY);
         ZoneCollection zones = zoneData.getLayer(zoneLayerName);
 
-        Map<String, NumericMatrix> referenceMatrices = new HashMap<>();
-        Collection<? extends ConfigGroup> modules = config.getParameterSets(PARAM_SET_KEY);
-        for(ConfigGroup paramset : modules) {
-            String name = paramset.getValue(MATRIX_NAME);
-            String path = paramset.getValue(MATRIX_FILE);
+        String name = config.getValue(MATRIX_NAME);
+        String path = config.getValue(MATRIX_FILE);
+        String strThreshold = config.getValue(THRESHOLD);
+        double threshold = 0;
+        if (strThreshold != null)
+            threshold = Double.parseDouble(strThreshold);
 
-            referenceMatrices.put(name, NumericMatrixIO.read(path));
-        }
+        NumericMatrix m = NumericMatrixIO.read(path);
 
-        return new MatrixAnalyzer(facilityData, zones, referenceMatrices, ioContext);
+//        MatrixAnalyzer analyzer = new MatrixAnalyzer(facilityData.getAll(), zones, m, name);
+//        analyzer.setFileIOContext(ioContext);
+//        analyzer.setVolumeThreshold(threshold);
+
+        AnalyzerTaskComposite<Pair<NumericMatrix, NumericMatrix>> composite = new AnalyzerTaskComposite<>();
+
+        HistogramWriter writer = new HistogramWriter(ioContext, new PassThroughDiscretizerBuilder(new
+                LinearDiscretizer(0.05), "linear"));
+
+        MatrixVolumeCompare volTask = new MatrixVolumeCompare(String.format("matrix.%s.vol", name));
+        volTask.setIoContext(ioContext);
+        volTask.setHistogramWriter(writer);
+
+        MatrixDistanceCompare distTask = new MatrixDistanceCompare(String.format("matrix.%s.dist", name), zones);
+        distTask.setFileIoContext(ioContext);
+
+        MatrixMarginalsCompare marTask = new MatrixMarginalsCompare(String.format("matrix.%s", name));
+        marTask.setHistogramWriter(writer);
+
+        composite.addComponent(volTask);
+        composite.addComponent(distTask);
+        composite.addComponent(marTask);
+
+        MatrixComparator analyzer = new MatrixComparator(m, facilityData.getAll(), zones, composite);
+        analyzer.setVolumeThreshold(threshold);
+
+        return analyzer;
     }
 }

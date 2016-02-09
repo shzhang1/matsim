@@ -1,7 +1,6 @@
 package opdytsintegration;
 
 /**
- * TODO A general-purpose utility.
  * 
  * @author Gunnar Flötteröd
  *
@@ -31,5 +30,10 @@ public class TimeDiscretization {
 
 	public int getBinCnt() {
 		return this.binCnt;
+	}
+	
+	// TODO NEW
+	public int getBinCenterTime_s(final int bin) {
+		return bin * this.binSize_s + this.binSize_s / 2;
 	}
 }

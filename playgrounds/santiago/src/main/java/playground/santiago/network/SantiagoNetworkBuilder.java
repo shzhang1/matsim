@@ -34,7 +34,6 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup.VspDefaultsCheckingLevel;
 import org.matsim.core.network.LinkImpl;
 import org.matsim.core.network.MatsimNetworkReader;
@@ -55,10 +54,13 @@ import org.opengis.feature.simple.SimpleFeature;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-import floetteroed.utilities.networks.containerloaders.MATSimNetworkContainerLoader;
 import playground.benjamin.utils.MergeNetworks;
 import playground.santiago.SantiagoScenarioConstants;
 
+/**
+ * @author dhosse, kturner, benjamin
+ *
+ */
 public class SantiagoNetworkBuilder {
 	private static final Logger log = Logger.getLogger(SantiagoNetworkBuilder.class);
 	
@@ -69,7 +71,7 @@ public class SantiagoNetworkBuilder {
 	private final String workingDirInputFiles = svnWorkingDir + "inputFromElsewhere/";
 	private final String outputDir = svnWorkingDir + "inputForMATSim/network/";
 
-	private final String transitNetworkFile = svnWorkingDir + "Kai_und_Daniel/inputForMATSim/transit/transitnetwork.xml.gz";
+	private final String transitNetworkFile = svnWorkingDir + "inputForMATSim/transit/transitnetwork.xml.gz";
 	
 	public static void main(String[] args) {
 		SantiagoNetworkBuilder snb = new SantiagoNetworkBuilder();
@@ -114,7 +116,7 @@ public class SantiagoNetworkBuilder {
 	private void mergeWithTransitNetwork(NetworkImpl network) {
 		Scenario ptScenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 		ptScenario.getConfig().vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.ignore);
-		new MatsimNetworkReader(ptScenario).readFile(transitNetworkFile);
+		new MatsimNetworkReader(ptScenario.getNetwork()).readFile(transitNetworkFile);
 //		new NetworkCleaner().run(ptScenario.getNetwork());
 		// Hack in order to avoid pt jamming on the routing network
 		// TODO: should not be necessary if pt is non-congested mode in qsim?

@@ -19,7 +19,9 @@
 
 package playground.johannes.synpop.matrix;
 
+import gnu.trove.map.TObjectDoubleMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
+import playground.johannes.studies.matrix2014.matrix.ODPredicate;
 
 import java.util.*;
 
@@ -37,21 +39,20 @@ public class MatrixOperations {
                 Double refVal = reference.get(i, j);
                 Double compVal = compare.get(i, j);
 
-                if (refVal == null)
-                    refVal = new Double(0);
+                if(refVal != null) { // a null ref value is not treated as zero!
+//                    if (refVal == null) refVal = new Double(0);
+                    if (compVal == null) compVal = new Double(0);
 
-                if (compVal == null)
-                    compVal = new Double(0);
-
-                if (refVal == 0 && compVal == 0)
-                    target.set(i, j, 0.0);
-                else if (refVal == 0) {
-                    // TODO: deliberately think about what do here
-                } else {
-                    Double err = (compVal - refVal) / refVal;
-                    target.set(i, j, err);
+                    if (refVal == 0 && compVal == 0)
+                        target.set(i, j, 0.0);
+                    else if (refVal == 0) {
+                        target.set(i, j, Double.POSITIVE_INFINITY);
+                        // TODO: deliberately think about what to do here
+                    } else {
+                        Double err = (compVal - refVal) / refVal;
+                        target.set(i, j, err);
+                    }
                 }
-
             }
         }
 
@@ -118,7 +119,18 @@ public class MatrixOperations {
         return sum;
     }
 
-    public static <K> TObjectDoubleHashMap<K> marginalsCol(Matrix<K, Double> m) {
+    public static <K> double diagonalSum(Matrix<K, Double> m) {
+        double sum = 0;
+        Set<K> keys = m.keys();
+        for(K key : keys) {
+            Double val = m.get(key, key);
+            if(val != null) sum += val;
+        }
+
+        return sum;
+    }
+
+    public static <K> TObjectDoubleHashMap<K> columnMarginals(Matrix<K, Double> m) {
         TObjectDoubleHashMap<K> marginals = new TObjectDoubleHashMap<>();
         Set<K> keys = m.keys();
         for (K j : keys) {
@@ -131,6 +143,21 @@ public class MatrixOperations {
             }
             marginals.put(j, sum);
         }
+        return marginals;
+    }
+
+    public static <K> TObjectDoubleMap<K> rowMarginals(Matrix<K, Double> m) {
+        TObjectDoubleMap<K> marginals = new TObjectDoubleHashMap<>();
+        Set<K> keys = m.keys();
+        for(K i : keys) {
+            double sum = 0;
+            for(K j : keys) {
+                Double val = m.get(i, j);
+                if(val != null) sum += val;
+            }
+            marginals.put(i, sum);
+        }
+
         return marginals;
     }
 
@@ -218,5 +245,18 @@ public class MatrixOperations {
         for (K i : keys) {
             m.set(i, i, null);
         }
+    }
+
+    public static <K, V> Matrix<K, V> subMatrix(ODPredicate<K, V> predicate, Matrix<K, V> source, Matrix<K, V> target) {
+        Set<K> keys = source.keys();
+        for(K row : keys) {
+            for(K col : keys) {
+                V value = source.get(row, col);
+                if(value != null && predicate.test(row, col, source)) {
+                    target.set(row, col, value);
+                }
+            }
+        }
+        return target;
     }
 }

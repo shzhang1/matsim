@@ -107,7 +107,7 @@ public class IatbrPlanBuilder {
 		processAmenities(scAmenities);
 		
 		/* Read network */
-		NetworkReaderMatsimV1 nr = new NetworkReaderMatsimV1(sc);
+		NetworkReaderMatsimV1 nr = new NetworkReaderMatsimV1(sc.getNetwork());
 		nr.parse(sc.getConfig().network().getInputFile());
 		LOG.info("Number of links: " + sc.getNetwork().getLinks().size());
 		LOG.info("Number of nodes: " + sc.getNetwork().getNodes().size());
@@ -245,7 +245,7 @@ public class IatbrPlanBuilder {
 				if(!facilityIdMap.containsKey(closestBuilding)){
 					Id<ActivityFacility> newFacility = Id.create("spot_" + spotId++, ActivityFacility.class);
 					home = activityFacilities.createAndAddFacility(newFacility, closestBuilding);
-					home.createActivityOption("h");
+					home.createAndAddActivityOption("h");
 					/* This should not be necessary, but is inconsistent with other containers. */
 					/* TODO Follow up with MATSim developers. */
 					if(!activityFacilities.getFacilities().containsKey(home.getId())){
@@ -286,7 +286,7 @@ public class IatbrPlanBuilder {
 									if(!facilityIdMap.containsKey(closestBuildingCoord)){
 										Id<ActivityFacility> newFacility = Id.create("spot_" + spotId++, ActivityFacility.class);
 										ActivityFacilityImpl afi = activityFacilities.createAndAddFacility(newFacility, closestBuildingCoord);
-										afi.createActivityOption("w");
+										afi.createAndAddActivityOption("w");
 										facilityIdMap.put(closestBuildingCoord, newFacility);
 										work = afi;
 									} else{

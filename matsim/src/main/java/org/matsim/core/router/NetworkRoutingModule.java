@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
@@ -72,18 +71,28 @@ public final class NetworkRoutingModule implements RoutingModule {
 
 	@Override
 	public List<? extends PlanElement> calcRoute(
-			final Facility fromFacility,
-			final Facility toFacility,
+			final Facility<?> fromFacility,
+			final Facility<?> toFacility,
 			final double departureTime,
 			final Person person) {
 		Leg newLeg = populationFactory.createLeg( mode );
 		newLeg.setDepartureTime( departureTime );
 
+		Link fromLink = this.network.getLinks().get(fromFacility.getLinkId());
+		Link toLink = this.network.getLinks().get(toFacility.getLinkId());
+
+		/* Remove this and next three lines once debugged. */
+		if(fromLink == null || toLink == null){
+			Logger.getLogger(NetworkRoutingModule.class).error("  ==>  null from/to link for person " + person.getId().toString());
+		}
+		if (fromLink == null) throw new RuntimeException("fromLink "+fromFacility.getLinkId()+" missing.");
+		if (toLink == null) throw new RuntimeException("toLink "+toFacility.getLinkId()+" missing.");
+
 		double travTime = routeLeg(
 				person,
 				newLeg,
-				fromFacility.getLinkId(),
-				toFacility.getLinkId(),
+				fromLink,
+				toLink,
 				departureTime);
 
 		// otherwise, information may be lost
@@ -102,18 +111,8 @@ public final class NetworkRoutingModule implements RoutingModule {
 		return "[NetworkRoutingModule: mode="+mode+"]";
 	}
 
-
-	/*package (Tests)*/ double routeLeg(Person person, Leg leg, Id<Link> fromLinkId, Id<Link> toLinkId, double depTime) {
+	private double routeLeg(Person person, Leg leg, Link fromLink, Link toLink, double depTime) {
 		double travTime = 0;
-		Link fromLink = this.network.getLinks().get(fromLinkId);
-		Link toLink = this.network.getLinks().get(toLinkId);
-
-		/* Remove this and next three lines once debugged. */
-		if(fromLink == null || toLink == null){
-			Logger.getLogger(NetworkRoutingModule.class).error("  ==>  null from/to link for person " + person.getId().toString());
-		}
-		if (fromLink == null) throw new RuntimeException("fromLink "+fromLinkId+" missing.");
-		if (toLink == null) throw new RuntimeException("toLink "+toLinkId+" missing.");
 
 		Node startNode = fromLink.getToNode();	// start at the end of the "current" link
 		Node endNode = toLink.getFromNode(); // the target is the start of the link

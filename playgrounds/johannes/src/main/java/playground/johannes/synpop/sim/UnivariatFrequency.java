@@ -20,11 +20,14 @@
 package playground.johannes.synpop.sim;
 
 import org.matsim.contrib.common.stats.Discretizer;
+import playground.johannes.synpop.analysis.Predicate;
 import playground.johannes.synpop.data.Attributable;
 import playground.johannes.synpop.data.CommonKeys;
+import playground.johannes.synpop.data.Segment;
 import playground.johannes.synpop.sim.data.CachedElement;
 import playground.johannes.synpop.sim.data.CachedPerson;
 import playground.johannes.synpop.sim.data.Converters;
+import playground.johannes.synpop.sim.data.DoubleConverter;
 import playground.johannes.synpop.sim.util.DynamicDoubleArray;
 
 import java.util.Collection;
@@ -41,7 +44,7 @@ public class UnivariatFrequency implements Hamiltonian, AttributeChangeListener 
 
     private final double scaleFactor;
 
-    private final double normFactor;
+    private final double binCount;
 
     private Object dataKey;
 
@@ -52,6 +55,14 @@ public class UnivariatFrequency implements Hamiltonian, AttributeChangeListener 
     private double hamiltonianValue;
 
     private final boolean absoluteMode;
+
+    private boolean useWeights;
+
+    private Object weightKey;
+
+    private Predicate<Segment> predicate;
+
+    private final Object PREDICATE_RESULT_KEY = new Object();
 
     public UnivariatFrequency(Set<? extends Attributable> refElements, Set<? extends Attributable> simElements,
                               String attrKey, Discretizer discretizer) {
@@ -68,24 +79,40 @@ public class UnivariatFrequency implements Hamiltonian, AttributeChangeListener 
         this.discretizer = discretizer;
         this.attrKey = attrKey;
         this.absoluteMode = absoluteMode;
+        this.useWeights = useWeights;
+
+        if(useWeights) weightKey = Converters.register(CommonKeys.PERSON_WEIGHT, DoubleConverter.getInstance());
 
         refFreq = initHistogram(refElements, attrKey, useWeights);
-        simFreq = initHistogram(simElements, attrKey, false); // TODO: no sim weighting for now
+        simFreq = initHistogram(simElements, attrKey, useWeights);
 
-        scaleFactor = simElements.size() / (double) refElements.size();
-        normFactor = 1;//simElements.size(); //TODO: do we need this for the absolute mode?
+        double refSum = 0;
+        double simSum = 0;
 
-        int size = Math.max(simFreq.size(), refFreq.size());
-        for (int i = 0; i < size; i++) {
+        binCount = Math.max(simFreq.size(), refFreq.size());
+
+        for (int i = 0; i < binCount; i++) {
+            simSum += simFreq.get(i);
+            refSum += refFreq.get(i);
+        }
+
+        scaleFactor = simSum/refSum;
+
+
+        for (int i = 0; i < binCount; i++) {
             double simVal = simFreq.get(i);
             double refVal = refFreq.get(i) * scaleFactor;
 
-            hamiltonianValue += calculateError(simVal, refVal) / normFactor;
+            hamiltonianValue += calculateError(simVal, refVal) / binCount;
         }
     }
 
+    public void setPredicate(Predicate<Segment> predicate) {
+        this.predicate = predicate;
+    }
+
     private DynamicDoubleArray initHistogram(Set<? extends Attributable> elements, String key, boolean useWeights) {
-        DynamicDoubleArray array = new DynamicDoubleArray(12, 0);
+        DynamicDoubleArray array = new DynamicDoubleArray(1, 0);
 
         for (Attributable element : elements) {
             String strVal = element.getAttribute(key);
@@ -108,21 +135,37 @@ public class UnivariatFrequency implements Hamiltonian, AttributeChangeListener 
     }
 
     @Override
-    public void onChange(Object dataKey, Object oldValue, Object newValue, CachedElement person) {
+    public void onChange(Object dataKey, Object oldValue, Object newValue, CachedElement element) {
         if (this.dataKey == null) this.dataKey = Converters.getObjectKey(attrKey);
 
-        if (this.dataKey.equals(dataKey)) {
+        if (this.dataKey.equals(dataKey) && evaluatePredicate(element)) {
+            double delta = 1.0;
+            if(useWeights) delta = (Double)element.getData(weightKey);
+
             int bucket = discretizer.index((Double) oldValue);
-            double diff1 = changeBucketContent(bucket, -1);
+            double diff1 = changeBucketContent(bucket, -delta);
 
             bucket = discretizer.index((Double) newValue);
-            double diff2 = changeBucketContent(bucket, 1);
+            double diff2 = changeBucketContent(bucket, delta);
 
-            hamiltonianValue += (diff1 + diff2) / normFactor;
+            hamiltonianValue += (diff1 + diff2) / binCount;
         }
     }
 
-    private double changeBucketContent(int bucketIndex, int value) {
+    private boolean evaluatePredicate(CachedElement element) {
+        if(predicate == null) return true;
+        else {
+            Boolean result = (Boolean) element.getData(PREDICATE_RESULT_KEY);
+            if(result != null) return result;
+            else {
+                result = predicate.test((Segment) element);
+                element.setData(PREDICATE_RESULT_KEY, result);
+                return result;
+            }
+        }
+    }
+
+    private double changeBucketContent(int bucketIndex, double value) {
         double simVal = simFreq.get(bucketIndex);
         double refVal = refFreq.get(bucketIndex) * scaleFactor;
         double oldDiff = calculateError(simVal, refVal);

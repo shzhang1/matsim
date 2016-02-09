@@ -18,7 +18,6 @@
  * *********************************************************************** */
 package playground.agarwalamit.congestionPricing;
 
-import com.google.inject.Provider;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Person;
@@ -37,7 +36,8 @@ import org.matsim.core.router.TripRouter;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
 
-import playground.ikaddoura.analysis.welfare.WelfareAnalysisControlerListener;
+import com.google.inject.Provider;
+
 import playground.vsp.congestion.controler.MarginalCongestionPricingContolerListener;
 import playground.vsp.congestion.handlers.CongestionHandlerImplV3;
 import playground.vsp.congestion.handlers.CongestionHandlerImplV4;
@@ -81,7 +81,7 @@ class PricingControler {
 		final Controler controler = new Controler(sc);
 		controler.getConfig().controler().setOverwriteFileSetting(
 				OutputDirectoryHierarchy.OverwriteFileSetting.overwriteExistingFiles);
-		controler.setDumpDataAtEnd(true);
+		controler.getConfig().controler().setDumpDataAtEnd(true);
 		controler.addOverridingModule(new OTFVisFileWriterModule());
 		
 		TollHandler tollHandler = new TollHandler(sc);
@@ -120,7 +120,7 @@ class PricingControler {
 //					bindCarTravelDisutilityFactory().toInstance(fact);
 //				}
 //			});
-//			controler.addControlerListener(new MarginalCongestionPricingContolerListener(sc, tollHandler, new CongestionHandlerImplV6(controler.getEvents(), sc)));
+//			services.addControlerListener(new MarginalCongestionPricingContolerListener(sc, tollHandler, new CongestionHandlerImplV6(services.getEvents(), sc)));
 //			Logger.getLogger(PricingControler.class).info("Using congestion pricing implementation version 6.");
 //		}
 		break;
@@ -128,8 +128,6 @@ class PricingControler {
 		default:
 			Logger.getLogger(PricingControler.class).info("Congestion pricing implementation does not match. No pricing implementation is introduced.");
 		}
-		
-		controler.addControlerListener(new WelfareAnalysisControlerListener(controler.getScenario()));
 		
 		if(usingMunich){
 			controler.addOverridingModule(new AbstractModule() {

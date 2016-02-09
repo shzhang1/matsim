@@ -22,19 +22,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.matsim.api.core.v01.Id;
-import org.matsim.api.core.v01.population.Person;
+
+import playground.benjamin.utils.BkNumberUtils;
 
 /**
  * @author amit
  */
 
 public final class MapUtils {
-	
+
 	private MapUtils(){}
 
-	public static int intSum(final Map<?, Integer> intMap){
+	public static int intValueSum(final Map<?, Integer> intMap){
 		if(intMap==null ) throw new NullPointerException("The map is null. Aborting ...");
 		int sum =0;
 		for(Integer i :intMap.values()){
@@ -43,7 +46,7 @@ public final class MapUtils {
 		return sum;
 	}
 
-	public static double doubleSum(final Map<?, Double> doubleMap){
+	public static double doubleValueSum(final Map<?, Double> doubleMap){
 		if(doubleMap==null ) throw new NullPointerException("The map is null. Aborting ...");
 		double sum =0;
 		for(Double i :doubleMap.values()){
@@ -55,14 +58,40 @@ public final class MapUtils {
 	 * @return m1-m2
 	 * <p> if key does not exist in either of map, value for that is assumed as <b>zero.
 	 */
-	public static Map<Id<Person>, Double> subtractMaps(final Map<Id<Person>, Double> m1, final Map<Id<Person>, Double> m2){
-		Set<Id<Person>> keys = new HashSet<>(m1.keySet());
+	public static <T> Map<Id<T>, Double> subtractMaps(final Map<Id<T>, Double> m1, final Map<Id<T>, Double> m2){
+		if(m1==null || m2 ==null) throw new NullPointerException("Either of the maps is null. Aborting ...");
+		Set<Id<T>> keys = new HashSet<>(m1.keySet());
 		keys.addAll(m2.keySet());
-		Map<Id<Person>, Double> outMap = new HashMap<Id<Person>, Double>();
-		for(Id<Person> id : keys){
+		Map<Id<T>, Double> outMap = new HashMap<Id<T>, Double>();
+		for(Id<T> id : keys){
 			double v1 = m1.containsKey(id) ? m1.get(id) : 0;
 			double v2 = m2.containsKey(id) ? m2.get(id) : 0;
 			outMap.put(id, v2-v1);
+		}
+		return outMap;
+	}
+
+	/**
+	 * @return m1+m2
+	 * <p> if key does not exist in either of map, value for that is assumed as <b>zero.
+	 */
+	public static SortedMap<String, Double> addMaps (final Map<String, Double> m1, final Map<String, Double> m2) {
+		if(m1==null || m2 ==null) throw new NullPointerException("Either of the maps is null. Aborting ...");
+		SortedMap<String, Double> outMap = new TreeMap<>(m1);
+		for (String str : m2.keySet()){
+			double existingValue = outMap.containsKey(str) ? outMap.get(str) : 0.;
+			outMap.put(str, m2.get(str)+existingValue);
+		}
+		return outMap;
+	}
+
+	public static SortedMap<String, Double> getPercentShare(final SortedMap<String, Integer> inMap){
+		SortedMap<String, Double> outMap = new TreeMap<>();
+		double valueSum = (double) MapUtils.intValueSum(inMap);
+		for(String str : inMap.keySet()) {
+			double legs = (double) inMap.get(str);
+			double pctShare = BkNumberUtils.roundDouble( legs*100 / valueSum, 3); 
+			outMap.put(str, pctShare);
 		}
 		return outMap;
 	}

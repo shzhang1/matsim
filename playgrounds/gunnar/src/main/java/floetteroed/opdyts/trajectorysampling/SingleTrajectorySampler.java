@@ -45,7 +45,7 @@ public class SingleTrajectorySampler<U extends DecisionVariable> implements
 
 	private final U decisionVariable;
 
-	private final ObjectiveFunction objectBasedObjectiveFunction;
+	private final ObjectiveFunction objectiveFunction;
 
 	private final ConvergenceCriterion convergenceCriterion;
 
@@ -56,14 +56,19 @@ public class SingleTrajectorySampler<U extends DecisionVariable> implements
 	// -------------------- CONSTRUCTION --------------------
 
 	public SingleTrajectorySampler(final U decisionVariable,
-			final ObjectiveFunction objectBasedObjectiveFunction,
+			final ObjectiveFunction objectiveFunction,
 			final ConvergenceCriterion convergenceCriterion) {
 		this.decisionVariable = decisionVariable;
-		this.objectBasedObjectiveFunction = objectBasedObjectiveFunction;
+		this.objectiveFunction = objectiveFunction;
 		this.convergenceCriterion = convergenceCriterion;
 	}
 
 	// --------------- IMPLEMENTATION OF TrajectorySampler ---------------
+
+	@Override
+	public ObjectiveFunction getObjectiveFunction() {
+		return this.objectiveFunction;
+	}
 
 	@Override
 	public boolean foundSolution() {
@@ -71,7 +76,7 @@ public class SingleTrajectorySampler<U extends DecisionVariable> implements
 	}
 
 	@Override
-	public Map<U, Double> getDecisionVariable2finalObjectiveFunctionValue() {
+	public Map<U, Double> getDecisionVariable2finalObjectiveFunctionValueView() {
 		final Map<U, Double> result = new LinkedHashMap<>();
 		if (this.convergenceCriterion.isConverged()) {
 			result.put(this.decisionVariable,
@@ -96,11 +101,11 @@ public class SingleTrajectorySampler<U extends DecisionVariable> implements
 			if (this.transitionSequence == null) {
 				this.transitionSequence = new TransitionSequence<U>(
 						this.fromState, this.decisionVariable, newState,
-						this.objectBasedObjectiveFunction.value(newState));
+						this.objectiveFunction.value(newState));
 			} else {
 				this.transitionSequence.addTransition(this.fromState,
 						this.decisionVariable, newState,
-						this.objectBasedObjectiveFunction.value(newState));
+						this.objectiveFunction.value(newState));
 			}
 			this.convergenceCriterion.evaluate(this.transitionSequence);
 		}
@@ -121,4 +126,20 @@ public class SingleTrajectorySampler<U extends DecisionVariable> implements
 			final Statistic<SamplingStage<U>> statistic) {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public void setStandardLogFileName(final String logFileName) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Map<U, Double> getDecisionVariable2selfTunedEquilbriumGapWeightView() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Map<U, Double> getDecisionVariable2selfTunedUniformityGapWeightView() {
+		throw new UnsupportedOperationException();
+	}
+
 }

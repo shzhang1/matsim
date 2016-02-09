@@ -50,7 +50,7 @@ public class InitRouteCreation {
 
 		System.out.println("  reading network xml file...");
 		Network network = scenario.getNetwork();
-		new MatsimNetworkReader(scenario).readFile(config.network().getInputFile());
+		new MatsimNetworkReader(scenario.getNetwork()).readFile(config.network().getInputFile());
 		System.out.println("  done.");
 
 		//////////////////////////////////////////////////////////////////////
@@ -66,7 +66,7 @@ public class InitRouteCreation {
 		//////////////////////////////////////////////////////////////////////
 
 		System.out.println("  adding person modules... ");
-		plans.addAlgorithm(new XY2Links(network));
+		plans.addAlgorithm(new XY2Links(network, null));
 		FreespeedTravelTimeAndDisutility timeCostCalc = new FreespeedTravelTimeAndDisutility(config.planCalcScore());
 		plans.addAlgorithm(
 				new PlanRouter(

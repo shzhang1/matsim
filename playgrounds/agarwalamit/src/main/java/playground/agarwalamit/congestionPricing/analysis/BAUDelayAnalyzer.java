@@ -133,7 +133,7 @@ public class BAUDelayAnalyzer {
 		
 		Config config = scenario.getConfig();
 
-		double vtts_car = ((config.planCalcScore().getModes().get(TransportMode.car).getMarginalUtilityOfTraveling() /3600) +
+		double vttsCar = ((config.planCalcScore().getModes().get(TransportMode.car).getMarginalUtilityOfTraveling() /3600) +
 				(config.planCalcScore().getPerforming_utils_hr()/3600)) 
 				/ (config.planCalcScore().getMarginalUtilityOfMoney());
 
@@ -160,7 +160,7 @@ public class BAUDelayAnalyzer {
 					 */
 					if(delay!=0 && count==0) throw new RuntimeException("Delay is not zero whereas person count is zero. Can not happen. Aborting...");
 					else if(delay !=0 && count !=0 )  {
-						avgToll = vtts_car * ( delay / count);
+						avgToll = vttsCar * ( delay / count);
 					}
 					writer.write(d+"\t"+linkId+"\t"+avgToll+"\n");	
 				}
@@ -173,9 +173,8 @@ public class BAUDelayAnalyzer {
 	}
 
 	private SortedMap<Double, Map<Id<Person>, Double>> getExperiencedPersonDelay(int noOfTimeBin){
-		ExperiencedDelayAnalyzer personAnalyzer = new ExperiencedDelayAnalyzer(eventsFile, scenario, noOfTimeBin);
-		personAnalyzer.preProcessData();
-		personAnalyzer.postProcessData();
+		ExperiencedDelayAnalyzer personAnalyzer = new ExperiencedDelayAnalyzer(eventsFile, scenario, noOfTimeBin, scenario.getConfig().qsim().getEndTime());
+		personAnalyzer.run();
 		return personAnalyzer.getTimeBin2AffectedPersonId2Delay();
 	}
 	

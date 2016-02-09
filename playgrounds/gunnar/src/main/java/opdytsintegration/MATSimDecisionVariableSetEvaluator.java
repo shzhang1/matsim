@@ -1,12 +1,13 @@
 package opdytsintegration;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.events.IterationEndsEvent;
@@ -19,12 +20,6 @@ import org.matsim.core.controler.listener.StartupListener;
 import com.google.inject.Inject;
 
 import floetteroed.opdyts.DecisionVariable;
-import floetteroed.opdyts.logging.EquilibriumGap;
-import floetteroed.opdyts.logging.EquilibriumGapWeight;
-import floetteroed.opdyts.logging.SurrogateObjectiveFunctionValue;
-import floetteroed.opdyts.logging.TransientObjectiveFunctionValue;
-import floetteroed.opdyts.logging.UniformityGap;
-import floetteroed.opdyts.logging.UniformityGapWeight;
 import floetteroed.opdyts.trajectorysampling.TrajectorySampler;
 import floetteroed.utilities.math.Vector;
 
@@ -32,6 +27,8 @@ import floetteroed.utilities.math.Vector;
  * Identifies the approximately best out of a set of decision variables.
  * 
  * @author Gunnar Flötteröd
+ * 
+ * @see DecisionVariable
  *
  */
 public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
@@ -45,11 +42,8 @@ public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
 
 	private final TimeDiscretization timeDiscretization;
 
-	// private int startTime_s = 0;
-	//
-	// private int binSize_s = 3600;
-	//
-	// private int binCnt = 24;
+	// must be linked to ensure a unique iteration ordering
+	private LinkedHashSet<Id<Link>> relevantLinkIds = null;
 
 	private int memory = 1;
 
@@ -66,10 +60,9 @@ public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
 	@Inject
 	private Network network;
 
-	// private VolumesAnalyzer volumesAnalyzer = null;
 	private OccupancyAnalyzer occupancyAnalyzer = null;
 
-	private SortedSet<Id<Link>> sortedLinkIds = null;
+	// private SortedSet<Id<Link>> sortedLinkIds = null;
 
 	private LinkedList<Vector> stateList = null;
 
@@ -83,10 +76,16 @@ public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
 	public MATSimDecisionVariableSetEvaluator(
 			final TrajectorySampler<U> trajectorySampler,
 			final MATSimStateFactory<U> stateFactory,
-			final TimeDiscretization timeDiscretization) {
+			final TimeDiscretization timeDiscretization,
+			final Collection<Id<Link>> relevantLinkIds) {
 		this.trajectorySampler = trajectorySampler;
 		this.stateFactory = stateFactory;
 		this.timeDiscretization = timeDiscretization;
+		if (relevantLinkIds == null) {
+			this.relevantLinkIds = null;
+		} else {
+			this.relevantLinkIds = new LinkedHashSet<>(relevantLinkIds);
+		}
 	}
 
 	// -------------------- SETTERS AND GETTERS --------------------
@@ -131,20 +130,32 @@ public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
 	/**
 	 * Where to write standard logging information.
 	 */
-	public void setStandardLogFileName(final String logFileName) {
-		this.trajectorySampler.addStatistic(logFileName,
-				new TransientObjectiveFunctionValue<U>());
-		this.trajectorySampler.addStatistic(logFileName,
-				new EquilibriumGapWeight<U>());
-		this.trajectorySampler.addStatistic(logFileName,
-				new EquilibriumGap<U>());
-		this.trajectorySampler.addStatistic(logFileName,
-				new UniformityGapWeight<U>());
-		this.trajectorySampler
-				.addStatistic(logFileName, new UniformityGap<U>());
-		this.trajectorySampler.addStatistic(logFileName,
-				new SurrogateObjectiveFunctionValue<U>());
-	}
+	// public void setStandardLogFileName(final String logFileName) {
+	// this.trajectorySampler.setStandardLogFileName(logFileName);
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new TransientObjectiveFunctionValue<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new EquilibriumGapWeight<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new EquilibriumGap<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new UniformityGapWeight<U>());
+	// this.trajectorySampler
+	// .addStatistic(logFileName, new UniformityGap<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new SurrogateObjectiveFunctionValue<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new LastObjectiveFunctionValue<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new LastEquilibriumGap<U>());
+	// this.trajectorySampler.addStatistic(logFileName, new
+	// TotalMemory<U>());
+	// this.trajectorySampler.addStatistic(logFileName, new
+	// FreeMemory<U>());
+	// this.trajectorySampler.addStatistic(logFileName, new MaxMemory<U>());
+	// this.trajectorySampler.addStatistic(logFileName,
+	// new LastDecisionVariable<U>());
+	// }
 
 	public MATSimState getFinalState() {
 		return finalState;
@@ -152,12 +163,13 @@ public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
 
 	// -------------------- INTERNALS --------------------
 
-	private MATSimState createState(final Population population) {
+	private MATSimState newState(final Population population) {
 		final Vector newSummaryStateVector;
 		if (this.averageMemory) {
 			// average state vectors
 			newSummaryStateVector = this.stateList.getFirst().copy();
 			for (int i = 1; i < this.memory; i++) {
+				// TODO Why iterate up to memory and not up to stateList.size()?
 				newSummaryStateVector.add(this.stateList.get(i));
 			}
 			newSummaryStateVector.mult(1.0 / this.memory);
@@ -174,82 +186,60 @@ public class MATSimDecisionVariableSetEvaluator<U extends DecisionVariable>
 	@Override
 	public void notifyStartup(final StartupEvent event) {
 
-		this.sortedLinkIds = new TreeSet<Id<Link>>(
-		// event.getControler().getScenario().getNetwork().
-				this.network.getLinks().keySet());
+		// this.sortedLinkIds = new TreeSet<Id<Link>>(this.network.getLinks()
+		// .keySet());
+		if (this.relevantLinkIds == null) {
+			this.relevantLinkIds = new LinkedHashSet<>(this.network.getLinks()
+					.keySet());
+		}
 		this.stateList = new LinkedList<Vector>();
 
-		// Replaced volumes by occupancies based on the assumption that the
-		// latter are better state variables. Gunnar, 2015-12-17
-		//
-		// this.volumesAnalyzer = new VolumesAnalyzer(this.binSize_s,
-		// this.binSize_s * (this.startBin + this.binCnt), event
-		// .getControler().getScenario().getNetwork());
-		// event.getControler().getEvents().addHandler(this.volumesAnalyzer);
-		this.occupancyAnalyzer = new OccupancyAnalyzer(this.timeDiscretization);
-		this.eventsManager.addHandler(this.occupancyAnalyzer);
+		this.occupancyAnalyzer = new OccupancyAnalyzer(this.timeDiscretization,
+				this.relevantLinkIds);
+		this.eventsManager.addHandler(this.occupancyAnalyzer);		
 
 		this.trajectorySampler.initialize();
 	}
 
 	@Override
 	public void notifyIterationEnds(final IterationEndsEvent event) {
-
-		{
-			/*
-			 * (1) Extract the instantaneous state vector.
-			 */
-			final Vector newInstantaneousStateVector = new Vector(
-					this.sortedLinkIds.size()
-							* this.timeDiscretization.getBinCnt());
-			int i = 0;
-			// for (Id<Link> linkId : this.sortedLinkIds) {
-			// final int[] volumes = this.volumesAnalyzer
-			// .getVolumesForLink(linkId);
-			// if (volumes == null) {
-			// for (int j = 0; j < this.binCnt; j++) {
-			// newInstantaneousStateVector.set(i++, 0.0);
-			// }
-			// } else {
-			// for (int j = this.startBin; j < (this.startBin + this.binCnt);
-			// j++) {
-			// newInstantaneousStateVector.set(i++, volumes[j]);
-			// }
-			// }
-			// }
-			for (Id<Link> linkId : this.sortedLinkIds) {
-				for (int bin = 0; bin < this.timeDiscretization.getBinCnt(); bin++) {
-					newInstantaneousStateVector.set(i++, this.occupancyAnalyzer
-							.getOccupancy_veh(linkId, bin));
-				}
+		
+		/*
+		 * (1) Extract the instantaneous state vector.
+		 */
+		final Vector newInstantaneousStateVector = new Vector(
+				this.relevantLinkIds.size()
+						* this.timeDiscretization.getBinCnt());
+		int i = 0;
+		for (Id<Link> linkId : this.relevantLinkIds) {
+			for (int bin = 0; bin < this.timeDiscretization.getBinCnt(); bin++) {
+				newInstantaneousStateVector.set(i++,
+						this.occupancyAnalyzer.getOccupancy_veh(linkId, bin));
 			}
+		}
 
-			/*
-			 * (2) Add instantaneous state vector to the list of past state
-			 * vectors and ensure that the size of this list is equal to what
-			 * the memory parameter prescribes.
-			 */
+		/*
+		 * (2) Add instantaneous state vector to the list of past state vectors
+		 * and ensure that the size of this list is equal to what the memory
+		 * parameter prescribes.
+		 */
+		this.stateList.addFirst(newInstantaneousStateVector);
+		while (this.stateList.size() < this.memory) {
 			this.stateList.addFirst(newInstantaneousStateVector);
-			while (this.stateList.size() < this.memory) {
-				this.stateList.addFirst(newInstantaneousStateVector);
-			}
-			while (this.stateList.size() > this.memory) {
-				this.stateList.removeLast();
-			}
+		}
+		while (this.stateList.size() > this.memory) {
+			this.stateList.removeLast();
 		}
 
-		{
-			final MATSimState newState = createState(
-			// event.getControler().getScenario().getPopulation()
-			this.population);
-			this.trajectorySampler.afterIteration(newState);
-		}
+		/*
+		 * (3) Inform the TrajectorySampler that one iteration has been
+		 * completed and provide the resulting state.
+		 */
+		this.trajectorySampler.afterIteration(this.newState(this.population));
 	}
 
 	@Override
 	public void notifyShutdown(final ShutdownEvent event) {
-		this.finalState = createState(
-		// event.getControler().getScenario().getPopulation()
-		this.population);
+		this.finalState = this.newState(this.population);
 	}
 }

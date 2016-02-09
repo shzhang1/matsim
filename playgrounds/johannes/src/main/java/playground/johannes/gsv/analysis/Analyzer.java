@@ -44,7 +44,7 @@ public class Analyzer {
 		
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		
-		MatsimNetworkReader netReader = new MatsimNetworkReader(scenario);
+		MatsimNetworkReader netReader = new MatsimNetworkReader(scenario.getNetwork());
 		netReader.readFile(config.getParam("network", "inputNetworkFile"));
 		
 		TransitScheduleReader schedReader = new TransitScheduleReader(scenario);
@@ -95,7 +95,7 @@ public class Analyzer {
 					Activity act = (Activity) plan.getPlanElements().get(i);
 					Id<ActivityFacility> id = Id.create("autofacility_"+ i +"_" + person.getId().toString(), ActivityFacility.class);
 					ActivityFacilityImpl fac = ((ActivityFacilitiesImpl)facilities).createAndAddFacility(id, act.getCoord());
-					fac.createActivityOption(act.getType());
+					fac.createAndAddActivityOption(act.getType());
 					
 					((ActivityImpl)act).setFacilityId(id);
 				}
