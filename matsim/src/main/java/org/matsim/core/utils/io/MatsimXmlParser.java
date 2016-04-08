@@ -52,11 +52,11 @@ public abstract class MatsimXmlParser extends DefaultHandler {
 	private boolean isValidating = true;
 	private boolean isNamespaceAware = true;
 
-//	private String localDtdBase = "dtd";
-	private String localDtdBase = null;
+	private String localDtdBase = "src/main/resources/dtd";
+//		private String localDtdBase = null;
 	// yy this is NOT working for me with "dtd", but it IS working with null. 
 	// Note that I am typically NOT running java from the root of the classpath. kai, mar'15
-	
+
 	private boolean preferLocalDtds = false;
 
 	private String doctype = null;
@@ -205,6 +205,8 @@ public abstract class MatsimXmlParser extends DefaultHandler {
 
 	@Override
 	public InputSource resolveEntity(final String publicId, final String systemId) {
+		Logger.getLogger(getClass()).warn(systemId);
+		
 		// extract the last part of the systemId
 		int index = systemId.replace('\\', '/').lastIndexOf('/');
 		String shortSystemId = systemId.substring(index + 1);
@@ -215,41 +217,43 @@ public abstract class MatsimXmlParser extends DefaultHandler {
 			setDoctype(shortSystemId);
 		}
 
-		InputSource source;
+		InputSource src;
 		if (this.preferLocalDtds) {
-			source = findDtdInLocalFilesystem(shortSystemId);
-			if (source == null) {
-				source = findDtdInClasspath(shortSystemId);
+			src = findDtdInLocalFilesystem(shortSystemId);
+			if (src == null) {
+				src = findDtdInClasspath(shortSystemId);
 			}
-			if (source == null) {
-				source = findDtdInDefaultLocation(shortSystemId);
+			if (src == null) {
+				src = findDtdInDefaultLocation(shortSystemId);
 			}
-			if (source == null) {
-				source = findDtdInRemoteLocation(systemId);
+			if (src == null) {
+				src = findDtdInRemoteLocation(systemId);
 			}
 		} else {
-			source = findDtdInRemoteLocation(systemId);
-			if (source == null) {
-				source = findDtdInLocalFilesystem(shortSystemId);
+			src = findDtdInRemoteLocation(systemId);
+			if (src == null) {
+				src = findDtdInLocalFilesystem(shortSystemId);
 			}
-			if (source == null) {
-				source = findDtdInClasspath(shortSystemId);
+			if (src == null) {
+				src = findDtdInClasspath(shortSystemId);
 			}
-			if (source == null) {
-				source = findDtdInDefaultLocation(shortSystemId);
+			if (src == null) {
+				src = findDtdInDefaultLocation(shortSystemId);
 			}
 		}
 
-		if (source == null) {
+		if (src == null) {
 			// We could neither get the remote nor the local version of the dtd, show a warning
 			log.warn("Could neither get the DTD from the web nor a local one. " + systemId);
 		} else {
-            source.setSystemId(systemId);
-        }
-		return source;
-    }
+//			src.setSystemId(systemId);
+			// don't know what this means.  causes problems when the dtd is taken from the local file system. kai, apr'16
+		}
+		
+		return src;
+	}
 
-	private InputSource findDtdInRemoteLocation(final String fullSystemId) {
+	private static InputSource findDtdInRemoteLocation(final String fullSystemId) {
 		log.info("Trying to load " + fullSystemId + ". In some cases (e.g. network interface up but no connection), this may take a bit.");
 		try {
 			URL url = new URL(fullSystemId);
@@ -257,7 +261,7 @@ public abstract class MatsimXmlParser extends DefaultHandler {
 			urlConn.setConnectTimeout(5000);
 			urlConn.setReadTimeout(5000);
 			urlConn.setAllowUserInteraction(false);         
-			
+
 			InputStream is = urlConn.getInputStream();
 			/* If there was no exception until here, than the path is valid.
 			 * Return the opened stream as a source. If we would return null, then the SAX-Parser
@@ -269,20 +273,21 @@ public abstract class MatsimXmlParser extends DefaultHandler {
 		}
 		return null;
 	}
-	
+
 	private InputSource findDtdInLocalFilesystem(final String shortSystemId) {
 		if (this.localDtdBase != null) {
 			String localFileName = this.localDtdBase + "/" + shortSystemId;
 			File dtdFile = new File(localFileName);
-			log.debug("dtdfile: " + dtdFile.getAbsolutePath());
+			log.info("searching for dtdfile at: " + dtdFile.getAbsolutePath());
 			if (dtdFile.exists() && dtdFile.isFile() && dtdFile.canRead()) {
-				log.info("Using the local DTD " + localFileName);
+				//				log.info("Using the local DTD " + localFileName);
+				log.info("Using the local DTD " + dtdFile.getAbsolutePath());
 				return new InputSource(dtdFile.getAbsolutePath());
 			}
 		}
 		return null;
 	}
-	
+
 	private InputSource findDtdInClasspath(final String shortSystemId) {
 		// still no success, try to load it with the ClassLoader, in case we're stuck in a jar...
 		InputStream stream = this.getClass().getResourceAsStream("/dtd/" + shortSystemId);
@@ -292,12 +297,12 @@ public abstract class MatsimXmlParser extends DefaultHandler {
 		}
 		return null;
 	}
-	
-	private InputSource findDtdInDefaultLocation(final String shortSystemId) {
+
+	private static InputSource findDtdInDefaultLocation(final String shortSystemId) {
 		log.info("Trying to access local dtd folder at standard location ./dtd...");
 		File dtdFile = new File("./dtd/" + shortSystemId);
 		if (dtdFile.exists() && dtdFile.isFile() && dtdFile.canRead()) {
-			log.info("Using the local DTD " + dtdFile.getAbsolutePath());
+			log.info("Using the DTD in default location " + dtdFile.getAbsolutePath());
 			return new InputSource(dtdFile.getAbsolutePath());
 		}
 		return null;

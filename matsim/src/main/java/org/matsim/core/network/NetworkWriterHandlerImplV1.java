@@ -22,9 +22,12 @@ package org.matsim.core.network;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Customizable;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
@@ -169,16 +172,25 @@ import org.matsim.core.utils.misc.Time;
 			out.write(" modes=\"" + this.lastModes + "\"");
 		}
 
-		if (link instanceof LinkImpl) {
-			LinkImpl li = (LinkImpl) link;
-			if (li.getOrigId() != null) {
-				out.write(" origid=\"" + li.getOrigId() + "\"");
-			}
-			if (li.getType() != null) {
-				out.write(" type=\"" + li.getType() + "\"");
-			}
+//		if (link instanceof LinkImpl) {
+//			LinkImpl li = (LinkImpl) link;
+//			if (li.getOrigId() != null) {
+//				out.write(" origid=\"" + li.getOrigId() + "\"");
+//			}
+//			if (li.getType() != null) {
+//				out.write(" type=\"" + li.getType() + "\"");
+//			}
+//		}
+		
+		out.write(" >\n");
+		Logger.getLogger(getClass()).warn("here");
+		for ( Entry<String, Object> entry : link.getCustomAttributes().entrySet() ) {
+			final String str = "\t\t\t<custom key=\"" + entry.getKey() + "\" value=\"" + entry.getValue() + "\" />\n";
+			Logger.getLogger(getClass()).warn( str );
+			out.write(str );
 		}
-		out.write(" />\n");
+		
+		out.write("\t\t</link>\n");
 	}
 
 	@Override

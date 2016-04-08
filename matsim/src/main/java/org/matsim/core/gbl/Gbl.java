@@ -28,6 +28,7 @@ import java.lang.management.ThreadMXBean;
 import java.net.URL;
 
 import org.apache.log4j.Logger;
+import org.matsim.api.core.v01.network.Link;
 
 /**
  * Some utility functions for dumping time and memory usage, and for logging.
@@ -227,6 +228,12 @@ public abstract class Gbl {
 	
 	public static final String PROBLEM_WITH_ACCESS_EGRESS = "When the TripRouter also generates access/egress legs, within-day replanning "
 			+ "needs to sort out if it wants that, or if it just wants to replan the current leg.  kai, feb'16" ;
+
+	public static void assertNull(Object obj) {
+		if ( obj != null ) {
+			throw new RuntimeException( "object is not null although it should be; follow stack trace") ;
+		}
+	}
 
 
 	

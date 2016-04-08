@@ -32,12 +32,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Customizable;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.gbl.Gbl;
+import org.matsim.core.scenario.CustomizableUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.misc.Time;
 
@@ -68,6 +70,8 @@ public class LinkImpl implements Link {
 	private final double euklideanDist;
 
 	private final Network network;
+
+	private Customizable customizableDelegate;
 
 	private static int fsWarnCnt = 0 ;
 	private static int cpWarnCnt = 0 ;
@@ -418,4 +422,13 @@ public class LinkImpl implements Link {
 		}
 
 	}
+	
+	@Override
+	public Map<String, Object> getCustomAttributes() {
+		if (this.customizableDelegate == null) {
+			this.customizableDelegate = CustomizableUtils.createCustomizable();
+		}
+		return this.customizableDelegate.getCustomAttributes();
+	}
+
 }

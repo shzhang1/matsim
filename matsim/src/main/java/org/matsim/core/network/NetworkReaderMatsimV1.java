@@ -26,14 +26,18 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.core.gbl.Gbl;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
+import org.matsim.core.utils.io.IOUtils;
 import org.matsim.core.utils.io.MatsimXmlParser;
 import org.matsim.core.utils.misc.StringUtils;
 import org.matsim.core.utils.misc.Time;
 import org.xml.sax.Attributes;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
@@ -48,13 +52,14 @@ public class NetworkReaderMatsimV1 extends MatsimXmlParser {
 	private final static String LINKS = "links";
 	private final static String NODE = "node";
 	private final static String LINK = "link";
+	private final static String CUSTOM = "custom";
 
 	private final Network network;
 
 	// final or settable?
 	private final CoordinateTransformation transformation;
 
-    private final static Logger log = Logger.getLogger(NetworkReaderMatsimV1.class);
+	private final static Logger log = Logger.getLogger(NetworkReaderMatsimV1.class);
 
 	public NetworkReaderMatsimV1(Network network) {
 		this( new IdentityTransformation() , network );
@@ -77,12 +82,16 @@ public class NetworkReaderMatsimV1 extends MatsimXmlParser {
 			startNetwork(atts);
 		} else if (LINKS.equals(name)) {
 			startLinks(atts);
+		} else if (CUSTOM.equals(name)) {
+			startCustom(atts) ;
 		}
 	}
 
 	@Override
 	public void endTag(final String name, final String content, final Stack<String> context) {
-		// currently, we do not have anything to do when a tag ends, maybe later sometimes...
+		if (LINK.equals(name)) {
+			l = null ;
+		}
 	}
 
 	private void startNetwork(final Attributes atts) {
@@ -155,7 +164,15 @@ public class NetworkReaderMatsimV1 extends MatsimXmlParser {
 		}
 	}
 
+	private Link l = null ;
+	
+	private void startCustom( final Attributes atts ) {
+		l.getCustomAttributes().put( atts.getValue("key"), atts.getValue("value") ) ;
+	}
+	
 	private void startLink(final Attributes atts) {
+		Gbl.assertNull(l);
+		
 		final String fromNodeStr = atts.getValue("from");
 		Node fromNode = this.network.getNodes().get(Id.create(fromNodeStr, Node.class));
 		if ( fromNode==null ) {
@@ -166,16 +183,12 @@ public class NetworkReaderMatsimV1 extends MatsimXmlParser {
 		if ( toNode==null ) {
 			throw new RuntimeException("node id given by link cannot be dereferenced; node label=" + toNodeStr ) ;
 		}
-		Link l = this.network.getFactory().createLink(Id.create(atts.getValue("id"), Link.class), fromNode, toNode);
+		l = this.network.getFactory().createLink(Id.create(atts.getValue("id"), Link.class), fromNode, toNode);
 		l.setLength(Double.parseDouble(atts.getValue("length")));
 		l.setFreespeed(Double.parseDouble(atts.getValue("freespeed")));
 		l.setCapacity(Double.parseDouble(atts.getValue("capacity")));
 		l.setNumberOfLanes(Double.parseDouble(atts.getValue("permlanes")));
 		this.network.addLink(l);
-		if (l instanceof LinkImpl) {
-			((LinkImpl) l).setOrigId(atts.getValue("origid"));
-			((LinkImpl) l).setType(atts.getValue("type"));
-		}
 		if (atts.getValue("modes") != null) {
 			String[] strModes = StringUtils.explode(atts.getValue("modes"), ',');
 			if ((strModes.length == 1) && strModes[0].isEmpty()) {
@@ -188,15 +201,25 @@ public class NetworkReaderMatsimV1 extends MatsimXmlParser {
 				l.setAllowedModes(modes);
 			}
 		}
-		if (atts.getValue("volume") != null) {
-			log.info("Attribute volume for element link is deprecated.");
-		}
-		if (atts.getValue("nt_category") != null) {
-			log.info("Attribute nt_category for element link is deprecated.");
-		}
-		if (atts.getValue("nt_type") != null) {
-			log.info("Attribute nt_type for element link is deprecated.");
-		}
+		
+//		List<String> known = Arrays.asList( "from", "to", "id", "length", "freespeed", "capacity", "permlanes", "modes" ) ;
+//		IOUtils.processUnknownAttributes(atts, l, known);
+//		
+//
+//		if (l instanceof LinkImpl) {
+//			((LinkImpl) l).setOrigId(atts.getValue("origid"));
+//			((LinkImpl) l).setType(atts.getValue("type"));
+//		}
+//		
+//		if (atts.getValue("volume") != null) {
+//			log.info("Attribute volume for element link is deprecated.");
+//		}
+//		if (atts.getValue("nt_category") != null) {
+//			log.info("Attribute nt_category for element link is deprecated.");
+//		}
+//		if (atts.getValue("nt_type") != null) {
+//			log.info("Attribute nt_type for element link is deprecated.");
+//		}
 	}
 
 }

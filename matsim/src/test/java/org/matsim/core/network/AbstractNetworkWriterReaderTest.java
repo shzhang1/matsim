@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Customizable;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
@@ -75,13 +76,22 @@ public abstract class AbstractNetworkWriterReaderTest extends MatsimTestCase {
 	}
 
 	private void doTestAllowedModes(final Set<String> modes, final String filename) {
+		System.setProperty("matsim.preferLocalDtds", "true") ;
+		
 		NetworkImpl network1 = NetworkImpl.createNetwork();
+
 		Node n1 = network1.createAndAddNode(Id.create("1", Node.class), new Coord((double) 0, (double) 0));
+
 		Node n2 = network1.createAndAddNode(Id.create("2", Node.class), new Coord((double) 1000, (double) 0));
+
 		Link l1 = network1.createAndAddLink(Id.create("1", Link.class), n1, n2, 1000.0, 10.0, 3600.0, 1.0);
 		l1.setAllowedModes(modes);
+		setOriginalId(l1, "origIdForTesting");
+		setType(l1, "typeForTesting");
 
 		writeNetwork(network1, filename);
+		
+		// ----
 
 		File networkFile = new File(filename);
 		assertTrue("written network file doesn't exist.", networkFile.exists());
@@ -97,6 +107,30 @@ public abstract class AbstractNetworkWriterReaderTest extends MatsimTestCase {
 		Set<String> modes2 = link1.getAllowedModes();
 		assertEquals("wrong number of allowed modes.", modes.size(), modes2.size());
 		assertTrue("wrong mode.", modes2.containsAll(modes));
+		
+//		assertEquals( "origIdForTesting", ((LinkImpl) link1).getOrigId() ) ;
+//		assertEquals( "typeForTesting", ((LinkImpl) link1).getType() ) ;
+
+		assertEquals( "origIdForTesting", getOriginalId(link1) ) ;
+		assertEquals( "typeForTesting", getType(link1) ) ;
+	}
+
+	private static void setType(Link l1, final String str2) {
+//		((LinkImpl) l1).setType(str2);
+		l1.getCustomAttributes().put( "type", str2 ) ;
+	}
+
+	private static void setOriginalId(Link l1, final String str1) {
+//		((LinkImpl) l1).setOrigId(str1);
+		l1.getCustomAttributes().put( "origid", str1 ) ;
+	}
+
+	private static String getType(Link link1) {
+		return (String) ((Customizable) link1).getCustomAttributes().get("type");
+	}
+
+	private static String getOriginalId(Link link1) {
+		return (String) ((Customizable) link1).getCustomAttributes().get("origid");
 	}
 
 	private static <T> Set<T> createHashSet(T... mode) {

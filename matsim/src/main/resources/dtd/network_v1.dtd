@@ -31,7 +31,7 @@
                type        CDATA #IMPLIED
                origid      CDATA #IMPLIED>
 
-<!ELEMENT link EMPTY>
+<!ELEMENT link (custom)*>
 <!ATTLIST link id          CDATA #REQUIRED
                from        CDATA #REQUIRED
                to          CDATA #REQUIRED
@@ -40,12 +40,16 @@
                capacity    CDATA #REQUIRED
                permlanes   CDATA #REQUIRED
                oneway      CDATA #FIXED    "1"
-               volume      CDATA #IMPLIED
-               origid      CDATA #IMPLIED
+               modes       CDATA "car">
+               
+<!ELEMENT custom EMPTY>
+<!ATTLIST custom key CDATA #REQUIRED value CDATA #REQUIRED >
+
+<!--               origid      CDATA #IMPLIED
                nt_category CDATA #IMPLIED
                nt_type     CDATA #IMPLIED
-               type        CDATA #IMPLIED
-               modes       CDATA "car">
+               volume      CDATA #IMPLIED
+               type        CDATA #IMPLIED -->
 
 <!-- ============================================================ -->
 

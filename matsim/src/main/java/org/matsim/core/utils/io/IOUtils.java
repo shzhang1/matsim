@@ -37,11 +37,16 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.log4j.Logger;
+import org.matsim.api.core.v01.Customizable;
+import org.matsim.core.network.NetworkReaderMatsimV1;
+import org.xml.sax.Attributes;
 
 /** A class with some static utility functions for file-I/O. */
 public class IOUtils {
@@ -609,6 +614,20 @@ public class IOUtils {
 		} finally {
 			if (i1 != null) i1.close();
 			if (i2 != null) i2.close();
+		}
+	}
+
+	public static void processUnknownAttributes(final Attributes atts, Object l, List<String> known) {
+		if ( l instanceof Customizable ) {
+			Map<String, Object> lattribs = ((Customizable) l).getCustomAttributes() ;
+			for ( int ii=0 ; ii<atts.getLength() ; ii++ ) {
+				String key = atts.getQName(ii) ;
+				if ( !known.contains( key ) ) {
+					lattribs.put( key, atts.getValue(ii) ) ;
+				}
+			}
+		} else {
+			log.warn( "object is not instanceof Customizable; cannot add additional attributes from xml file") ;
 		}
 	}
 	

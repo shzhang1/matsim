@@ -22,6 +22,7 @@ package org.matsim.api.core.v01.network;
 import java.util.Set;
 
 import org.matsim.api.core.v01.BasicLocation;
+import org.matsim.api.core.v01.Customizable;
 import org.matsim.core.network.NetworkImpl;
 import org.matsim.core.utils.misc.Time;
 
@@ -31,7 +32,7 @@ import org.matsim.core.utils.misc.Time;
  * the context.
  * (This becomes clear if you think about a nodeId/linkId given by person.)
  */
-public interface Link extends BasicLocation<Link> {
+public interface Link extends BasicLocation<Link>, Customizable {
 
 
 	/**
