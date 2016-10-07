@@ -46,7 +46,7 @@ public class RunEventsHandlingExample {
 
 		//create the handler and add it
 		MyEventHandler1 handler1 = new MyEventHandler1();
-		MyEventHandler2 handler2 = new MyEventHandler2();
+		MyEventHandler2 handler2 = new MyEventHandler3();
 		MyEventHandler3 handler3 = new MyEventHandler3();
 		events.addHandler(handler1);
 		events.addHandler(handler2);
